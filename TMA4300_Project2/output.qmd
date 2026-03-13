@@ -1,0 +1,725 @@
+\documentclass[a4paper]{article}\usepackage[]{graphicx}\usepackage[]{xcolor}
+% maxwidth is the original width if it is less than linewidth
+% otherwise use linewidth (to make sure the graphics do not exceed the margin)
+\makeatletter
+\def\maxwidth{ %
+  \ifdim\Gin@nat@width>\linewidth
+    \linewidth
+  \else
+    \Gin@nat@width
+  \fi
+}
+\makeatother
+
+\definecolor{fgcolor}{rgb}{0.345, 0.345, 0.345}
+\newcommand{\hlnum}[1]{\textcolor[rgb]{0.686,0.059,0.569}{#1}}%
+\newcommand{\hlsng}[1]{\textcolor[rgb]{0.192,0.494,0.8}{#1}}%
+\newcommand{\hlcom}[1]{\textcolor[rgb]{0.678,0.584,0.686}{\textit{#1}}}%
+\newcommand{\hlopt}[1]{\textcolor[rgb]{0,0,0}{#1}}%
+\newcommand{\hldef}[1]{\textcolor[rgb]{0.345,0.345,0.345}{#1}}%
+\newcommand{\hlkwa}[1]{\textcolor[rgb]{0.161,0.373,0.58}{\textbf{#1}}}%
+\newcommand{\hlkwb}[1]{\textcolor[rgb]{0.69,0.353,0.396}{#1}}%
+\newcommand{\hlkwc}[1]{\textcolor[rgb]{0.333,0.667,0.333}{#1}}%
+\newcommand{\hlkwd}[1]{\textcolor[rgb]{0.737,0.353,0.396}{\textbf{#1}}}%
+\let\hlipl\hlkwb
+
+\usepackage{framed}
+\makeatletter
+\newenvironment{kframe}{%
+ \def\at@end@of@kframe{}%
+ \ifinner\ifhmode%
+  \def\at@end@of@kframe{\end{minipage}}%
+  \begin{minipage}{\columnwidth}%
+ \fi\fi%
+ \def\FrameCommand##1{\hskip\@totalleftmargin \hskip-\fboxsep
+ \colorbox{shadecolor}{##1}\hskip-\fboxsep
+     % There is no \\@totalrightmargin, so:
+     \hskip-\linewidth \hskip-\@totalleftmargin \hskip\columnwidth}%
+ \MakeFramed {\advance\hsize-\width
+   \@totalleftmargin\z@ \linewidth\hsize
+   \@setminipage}}%
+ {\par\unskip\endMakeFramed%
+ \at@end@of@kframe}
+\makeatother
+
+\definecolor{shadecolor}{rgb}{.97, .97, .97}
+\definecolor{messagecolor}{rgb}{0, 0, 0}
+\definecolor{warningcolor}{rgb}{1, 0, 1}
+\definecolor{errorcolor}{rgb}{1, 0, 0}
+\newenvironment{knitrout}{}{} % an empty environment to be redefined in TeX
+
+\usepackage{alltt}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[eng]{babel}
+\usepackage{hyperref}
+\usepackage{stmaryrd}
+\usepackage{algorithm}
+\usepackage{float}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{dsfont}
+\usepackage{algpseudocode}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{siunitx}
+\usepackage{booktabs}
+\usepackage[margin=2.5cm]{geometry}
+
+\newcommand{\email}[1]{ (\href{mailto:#1}{#1})}
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\begin{document}
+
+\setcounter{secnumdepth}{0}
+
+\title{Project 2, TMA4300}
+\author{\email{mihan@stud.ntnu.no},  \email{alessatc@stud.ntnu.no}}
+\maketitle
+
+\tableofcontents
+\newpage
+\section{Problem 1}
+\subsection{Point a}
+
+Supposing that the joint density of $U, Z$ up to a normalizing constant is:
+
+\[
+f^*_{U,Z}(u,z) = \begin{cases} 
+1 & \text{for } 0 < u < e^{-z^2/2} \\
+0 & \text{elsewhere}
+\end{cases} = \mathds{1}_{0 < u < e^{-z^2/2}}
+\]
+
+\subsubsection{Full conditionals derivation}
+
+\begin{enumerate}
+    \item \textbf{We start deriving the marginals of $U$ and $V$}.
+    
+\textbf{Marginal of $U$}:
+
+\begin{equation}\label{marginal_of_U}
+f_U(u) =  \int_{-\infty}^{\infty}f^*_{U,Z}(u,z) \ \mathrm{d}z = \int_{-\infty}^{\infty} \mathds{1}_{0 < u < e^{-z^2/2}} \ \mathrm{d}z
+\end{equation}
+
+We can see that the joint density is $\neq 0 \iff u<e^{-z^2/2}$, thus:
+\begin{equation}\label{alternative_extremes_start}
+    \ln (u)<-\frac{z^2}{2}
+\end{equation}
+\begin{equation}
+    z^2 < -2\ln(u)
+\end{equation}
+\begin{equation}\label{alternative_extremes_end}
+    -\sqrt{-2\ln(u)}< z < \sqrt{-2\ln(u)}
+\end{equation}
+
+The interval is non empty if and only if
+\begin{equation}
+    -2\ln(u) >0 \iff \ln(u)<0\iff 0<u<1
+\end{equation}
+
+So the integral \ref{marginal_of_U} becomes:
+\begin{equation}
+    f_U(u)=\int_{-\sqrt{-2\ln(u)}}^{\sqrt{-2\ln(u)}}1\ \mathrm dz\   \mathds{1}_{(0,1)}(u) = 2\sqrt{-2\ln(u)}\   \mathds{1}_{(0,1)}(u)
+\end{equation}
+
+
+\textbf{Marginal of $Z$}:
+
+\begin{equation}\label{Z_is_normally_distributed}
+    f_Z(z) = \int_{-\infty}^\infty f^*_{U,Z}(u,z) \ \mathrm{d}u = \int_{-\infty}^{\infty} \mathds{1}_{0 < u < e^{-z^2/2}}(u) \ \mathrm{d}u = \int_0^{e^{-z^2/2}}1\ \mathrm d u= e^{-z^2/2},
+\end{equation}
+
+this is proportional to a normal standard distribution.
+
+\item \textbf{Find the conditionals.}
+
+\textbf{Distribution of U conditioned on Z}
+
+\begin{align}
+    f_{U|Z} (u|z) & = \frac{f^*_{U,Z}(u,z)}{f_Z(z)} = \frac{1}{e^{-z^2/2}}\mathds{1}_{0 < u < e^{-z^2/2}}(u) = e^{z^2/2}\mathds{1}_{0 < u < e^{-z^2/2}}(u) \\ 
+    & \sim \mathrm{Uniform} ( 0,e^{-z^2/2})
+\end{align}
+
+\textbf{Distribution of Z conditioned on U}
+
+As seen in equations \ref{alternative_extremes_start} - \ref{alternative_extremes_end}, for fixed $u\in (0,1)$, we can write:
+\begin{equation}
+    f^*_{U,Z}(u,z) = \mathds{1}_{0 < u < e^{-z^2/2}} = \mathds{1}_{(-\sqrt{-2\ln(u)},\sqrt{-2\ln(u)})}(z).
+\end{equation}
+
+Thus,
+\begin{align}
+    f_{Z|U}(z|u)= \frac{f^*_{U,Z}(u,z)}{f_U(u)} & =\frac1{2\sqrt{-2\ln(u)}}\mathds{1}_{(-\sqrt{-2\ln(u)},\sqrt{-2\ln(u)})}(z) \\
+    & \sim  \mathrm{Uniform}\Big ( -\sqrt{-2\ln(u)},\sqrt{-2\ln(u)}\Big).
+\end{align}
+\end{enumerate}
+
+\subsubsection{Gibbs Sampling implementation}
+
+We now have the full conditional distributions:
+\begin{itemize}
+    \item $Q_U(U | Z) = \mathrm{Uniform} ( 0,e^{-Z^2/2})$
+    \item $Q_Z(Z | U) = \mathrm{Uniform}\Big ( -\sqrt{-2\ln(U)},\sqrt{-2\ln(U)}\Big)$
+\end{itemize}
+
+Since these conditionals are known and easy to sample from, we can implement Gibbs sampling directly and the acceptance probability $\alpha = 1$.
+
+The algorithm simply alternates:
+
+\begin{enumerate}
+    \item Sample $U_t \sim f_{U|Z}(U | Z_{t-1})$.
+    \item Sample $Z_t \sim f_{Z|U}(Z | U_t)$.
+\end{enumerate}
+
+This produces a Markov chain with stationary distribution equal to the joint $f_{U,Z}$.
+
+
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlkwd{set.seed}\hldef{(}\hlnum{67}\hldef{)}
+
+\hlcom{# Gibbs sampler for f_\{U,Z\}}
+\hldef{gibbs_sampler} \hlkwb{<-} \hlkwa{function}\hldef{(}\hlkwc{n_samples}\hldef{) \{}
+
+    \hlcom{# storage for samples}
+    \hldef{U} \hlkwb{<-} \hlkwd{numeric}\hldef{(n_samples)}
+    \hldef{Z} \hlkwb{<-} \hlkwd{numeric}\hldef{(n_samples)}
+
+    \hlcom{# initial values}
+    \hldef{U[}\hlnum{1}\hldef{]} \hlkwb{<-} \hlnum{0.5}  \hlcom{# must be in (0,1)}
+    \hldef{Z[}\hlnum{1}\hldef{]} \hlkwb{<-} \hlnum{0}
+
+    \hlkwa{for} \hldef{(t} \hlkwa{in} \hlnum{2}\hlopt{:}\hldef{(n_samples)) \{}
+        \hlcom{# sample U | Z}
+        \hldef{z_prev} \hlkwb{<-} \hldef{Z[t} \hlopt{-} \hlnum{1}\hldef{]}
+        \hldef{U[t]} \hlkwb{<-} \hlkwd{runif}\hldef{(}\hlnum{1}\hldef{,} \hlkwc{min} \hldef{=} \hlnum{0}\hldef{,} \hlkwc{max} \hldef{=} \hlkwd{exp}\hldef{(}\hlopt{-}\hldef{z_prev}\hlopt{^}\hlnum{2}\hlopt{/}\hlnum{2}\hldef{))}
+
+        \hlcom{# sample Z | U}
+        \hldef{u_curr} \hlkwb{<-} \hldef{U[t]}
+        \hldef{Z[t]} \hlkwb{<-} \hlkwd{runif}\hldef{(}\hlnum{1}\hldef{,} \hlkwc{min} \hldef{=} \hlopt{-}\hlkwd{sqrt}\hldef{(}\hlopt{-}\hlnum{2} \hlopt{*} \hlkwd{log}\hldef{(u_curr)),} \hlkwc{max} \hldef{=} \hlkwd{sqrt}\hldef{(}\hlopt{-}\hlnum{2} \hlopt{*} \hlkwd{log}\hldef{(u_curr)))}
+    \hldef{\}}
+
+    \hlkwd{list}\hldef{(}\hlkwc{U} \hldef{= U,} \hlkwc{Z} \hldef{= Z)}
+\hldef{\}}
+
+\hlcom{# Generate 10000 samples}
+\hldef{samples} \hlkwb{<-} \hlkwd{gibbs_sampler}\hldef{(}\hlkwc{n_samples} \hldef{=} \hlnum{10000}\hldef{)}
+
+\hlcom{# Plot}
+\hlkwd{plot}\hldef{(samples}\hlopt{$}\hldef{Z, samples}\hlopt{$}\hldef{U,} \hlkwc{pch} \hldef{=} \hlnum{16}\hldef{,} \hlkwc{cex} \hldef{=} \hlnum{0.4}\hldef{,} \hlkwc{col} \hldef{=} \hlkwd{rgb}\hldef{(}\hlnum{0.1}\hldef{,} \hlnum{0.4}\hldef{,} \hlnum{0.8}\hldef{,} \hlnum{0.3}\hldef{),} \hlkwc{xlab} \hldef{=} \hlsng{"Z"}\hldef{,} \hlkwc{ylab} \hldef{=} \hlsng{"U"}\hldef{,} \hlkwc{las} \hldef{=} \hlnum{1}\hldef{)}  \hlcom{# axis labels horizontal}
+\hlkwd{grid}\hldef{(}\hlkwc{col} \hldef{=} \hlsng{"gray80"}\hldef{)}
+\hlkwd{box}\hldef{()}
+\end{alltt}
+\end{kframe}\begin{figure}[H]
+
+{\centering \includegraphics[width=0.7\linewidth]{figure/gibbs_plot-1} 
+
+}
+
+\caption[Gibbs samples from the joint distribution]{Gibbs samples from the joint distribution.}\label{fig:gibbs_plot}
+\end{figure}
+
+\end{knitrout}
+
+\subsection{Point b}
+As seen in \ref{Z_is_normally_distributed}, Z distribution is proportional to a normal distribution, so that's what we should expect when running the Gibbs-sampler discarding $U$ samples.
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlcom{# Discard U, keep only Z}
+\hldef{Z_samples} \hlkwb{<-} \hldef{samples}\hlopt{$}\hldef{Z}
+
+\hlcom{# Plot histogram with normal overlay}
+\hlkwd{hist}\hldef{(Z_samples,} \hlkwc{breaks} \hldef{=} \hlnum{50}\hldef{,} \hlkwc{probability} \hldef{=} \hlnum{TRUE}\hldef{,} \hlkwc{xlab} \hldef{=} \hlsng{"Z"}\hldef{,} \hlkwc{col} \hldef{=} \hlkwd{rgb}\hldef{(}\hlnum{0.1}\hldef{,} \hlnum{0.4}\hldef{,} \hlnum{0.8}\hldef{,} \hlnum{0.3}\hldef{),} \hlkwc{border} \hldef{=} \hlsng{"white"}\hldef{)}
+\hlkwd{curve}\hldef{(}\hlkwd{dnorm}\hldef{(x,} \hlnum{0}\hldef{,} \hlnum{1}\hldef{),} \hlkwc{add} \hldef{=} \hlnum{TRUE}\hldef{,} \hlkwc{col} \hldef{=} \hlsng{"red"}\hldef{,} \hlkwc{lwd} \hldef{=} \hlnum{2}\hldef{)}
+\hlkwd{grid}\hldef{()}
+\end{alltt}
+\end{kframe}\begin{figure}[H]
+
+{\centering \includegraphics[width=0.6\linewidth]{figure/gibbs_plot_b-1} 
+
+}
+
+\caption[Gibbs Z samples, compared to the normal standard distribution]{Gibbs Z samples, compared to the normal standard distribution.}\label{fig:gibbs_plot_b}
+\end{figure}
+
+\end{knitrout}
+
+
+\subsection{Point c}
+\subsubsection{Proof that $Z_{n-1}, Z_n$ are uncorrelated}
+At stationarity, the Gibbs chain satisfies:
+\begin{align}
+    Z_n|U_n &\sim \mathrm{Uniform}\Big ( -\sqrt{-2\ln(U)},\sqrt{-2\ln(U)}\Big)\\
+    U_n|Z_{n-1} &\sim \mathrm{Uniform} ( 0,e^{-Z^2/2})\label{total_conditional_distributions_2}
+\end{align}
+
+
+Law of total covariance:
+\begin{equation}
+    Cov(X,Y) = \mathbb E[Cov(X,Y|Z)] + Cov(\mathbb E[X|Z], \mathbb E[Y|Z])
+\end{equation}
+Applying this to $Z_{n-1},Z_n$, conditioning of $U_n$:
+\begin{equation}
+    Cov(Z_{n-1},Z_n) = \mathbb E[Cov(Z_{n-1},Z_n|U_n)] + Cov(\mathbb E [Z_{n-1}|U_n], \mathbb E[Z_n|U_n])
+\end{equation}
+
+We can now notice that:
+\begin{itemize}
+    \item $Cov(Z_{n-1},Z_n|U_n)=0$ since, given $U_n$, $Z_{n}$ does not depend on $Z_{n-1}$
+    \item $\mathbb E[Z_n|U_n] = 0$ because $Z_n|U_n$ is distributed as a 0 centered uniform variable. Thus, since $Cov(X, c) = \mathbb{E}[(X - \mathbb{E}[X])(c - \mathbb{E}[c])]$, if $c=0\implies Cov(\mathbb E [Z_{n-1}|U_n], 0)=0$.
+\end{itemize}
+Thus,
+\begin{equation}
+     Cov(Z_{n-1},Z_n)  =0
+\end{equation}
+and we can state that $Z_{n-1},Z_n$ are uncorrelated.
+
+\subsubsection{Proof that $Z_{n-1}^2, Z_n^2$ are correlated}
+We start computing the covariance:
+\begin{equation}
+    Cov(Z_{n-1}^2, Z_n^2) =\mathbb E[Z_{n-1}^2 Z_n^2]- \mathbb E[Z_{n-1}^2]\mathbb E[Z_n^2]
+\end{equation}
+
+Using the law of total expectation,
+\begin{equation}
+    \mathbb E[Z_{n-1}^2Z_{n}^2] = \mathbb E[Z_{n-1}^2\mathbb E[Z_n^2|U_n]]
+\end{equation}
+Since we have the conditional distribution $Z_n|U_n \sim \mathrm{Uniform}\Big ( -\sqrt{-2\ln(U)},\sqrt{-2\ln(U)}\Big)$,
+We can compute
+\begin{align}
+\mathbb E[Z_n^2|U_n = u] &= \int_{-\sqrt{-2\ln(u)}}^{\sqrt{-2\ln(u)}} z^2 \frac{1}{2\sqrt{-2\ln(u)}} \ \mathrm dz= \\
+& = \frac{1}{2\sqrt{-2\ln(u)}}  \int_{-\sqrt{-2\ln(u)}}^{\sqrt{-2\ln(u)}} z^2 \ \mathrm dz = \\
+& = \frac{1}{\sqrt{-2\ln(u)}}  \int_{0}^{\sqrt{-2\ln(u)}} z^2 \ \mathrm dz = \frac {-2\ln(u)}3 
+\end{align}
+So we have:
+\begin{equation}
+    \mathbb E[Z_{n-1}^2Z_{n}^2] = \mathbb E\Big [Z_{n-1}^2 \frac {-2\ln(U_n)}3\Big ]
+\end{equation}
+Conditioning on $Z_{n-1}$,
+\begin{equation}
+    \mathbb E\Big [Z_{n-1} ^ 2 \mathbb E\Big [\frac{-2\ln(U_n)}{3} \Big| Z_{n-1} \Big]   \Big]
+\end{equation}
+Using the known distribution \ref{total_conditional_distributions_2},
+\begin{align}
+    E\Big [\frac{-2\ln(U_n)}{3} \Big| Z_{n-1} =z\Big] &= \int_{0}^{e^{-z^2/2}} -\frac{2}{3}\ln(u) \frac 1{e^{-z^2/2}} \ \mathrm du \\
+    & =-\frac{2}{3}\frac 1{e^{-z^2/2}}\int_{0}^{e^{-z^2/2}} \ln(u)  \ \mathrm du = \\
+    & =  -\frac{2}{3}\frac 1{e^{-z^2/2}}\Big[u\ln u-u\Big]_{0}^{e^{-z^2/2}}
+\end{align}
+Applying L'Hôpital's rule, $\lim_{u\to 0} u\ln u-u = 0$. Thus,
+\begin{equation}
+    E\Big [\frac{-2\ln(U_n)}{3} \Big| Z_{n-1} =z\Big] = -\frac{2}{3}[ \ln (e^{-z^2/2}) -1] = -\frac{2(-\frac{z^2}{2}-1 )}{3} = \frac {z^2+2}{3}
+\end{equation}
+Thus,
+\begin{equation}
+    \mathbb E\Big [Z_{n-1} ^ 2 \frac {Z_{n-1}^2+2}{3}   \Big] = \frac{\mathbb E[Z_{n-1}^4]+2\mathbb E[Z_{n-1}^2]}3
+\end{equation}
+
+At stationarity, the marginal distribution of the samples $Z_n$ is the target distribution itself. Since our target density is the standard Gaussian kernel $e^{-z^2/2}$, the stationary distribution is $Z \sim \mathcal{N}(0, 1)$.To evaluate the final expression, we recall the moments of a standard normal random variable. For $Z \sim \mathcal{N}(0, 1)$, the odd moments are zero by symmetry, and the even moments are given by $(2k-1)!!$
+\begin{itemize}
+    \item $\mathbb{E}[Z^2] = 1$
+    \item $\mathbb{E}[Z^4] = 3$ 
+\end{itemize}
+Substituting these known moments into our previous result for the joint expectation:
+\begin{equation}
+\mathbb{E}[Z_{n-1}^2 Z_n^2] = \frac{\mathbb{E}[Z_{n-1}^4] + 2\mathbb{E}[Z_{n-1}^2]}{3} = \frac{3 + 2(1)}{3} = \frac{5}{3}
+\end{equation}
+We can now complete the calculation for the covariance of the squared terms. 
+Since $\mathbb{E}[Z_n^2] = \mathbb{E}[Z_{n-1}^2] = 1$ at stationarity
+\begin{align}
+    \text{Cov}(Z_{n-1}^2, Z_n^2) &= \mathbb{E}[Z_{n-1}^2 Z_n^2] - \mathbb{E}[Z_{n-1}^2]\mathbb{E}[Z_n^2] = \frac{5}{3} - (1)(1) = \frac{2}{3}
+\end{align}
+Because $\text{Cov}(Z_{n-1}^2, Z_n^2) > 0$, we conclude that $Z_{n-1}^2$ and $Z_n^2$ are positively correlated. 
+
+
+\section{Problem 2}
+
+
+\section{Problem 3}
+\subsection{Point a}
+\subsubsection{Initial distribution}
+Starting from the first order auto-regressive model
+\begin{equation}\label{autoregressive_model}
+y_t-\mu = \phi(y_t-\mu)+\varepsilon_t\ ,
+\end{equation}
+to show that $\mathbb E[y_1|\mu,\phi,\tau] = \mu $ and $Var(y_1|\mu,\phi,\tau) = \frac{\tau^{-1}}{1-\phi^2}$, we start by centering the process, defining $x_t=y_t-\mu$. The model becomes:
+\begin{equation}
+    x_t = \phi x_{t-1}+\varepsilon_t
+\end{equation}
+with $\varepsilon_t \sim \mathcal N(0,\tau^{-1})$.
+
+Iterating the relation:
+\begin{align}
+    x_t &= \phi x_{t-1}+\varepsilon_t= \\ 
+    & = \phi(\phi x_{t-2}+\varepsilon_{t-1})+\varepsilon_t
+=\\
+&= \phi^kx_{t-k}+\sum_{j=0}^{k-1}\phi^j\varepsilon_{t-j} \ .
+\end{align}
+Since $|\phi|<1$ a priori, then at stationarity (as $k\to \infty$ ), 
+\begin{equation}
+    \phi ^kx_{t-k} \to 0
+\end{equation}
+and then,
+\begin{equation}
+    x_t = \sum_{j=0}^{\infty}\phi^j\varepsilon_{t-j}
+\end{equation}
+Since $\varepsilon_{t-j} \sim \mathcal N (0,\tau^{-1} )$ and for the variance property $Var(aX) = a^2Var(X)$, then:
+\begin{equation}
+    \phi^j\varepsilon_{t-j}\sim\mathcal N\Big ( 0, \frac {\phi ^{2j}}\tau\Big )
+\end{equation}
+The sum of normal independent variables is normal. Thus,
+\begin{equation}
+    x_t \sim \mathcal N (0,\sigma_x^2)
+\end{equation}
+where:
+\begin{equation}
+    \sigma_x^2 = \sum_{j=0}^\infty \frac{\phi ^{2j}}\tau = \frac 1\tau \sum_{j=0}^\infty (\phi^2)^j
+\end{equation}
+since $\phi^2<1$, this is a geometrical series, summing to $\frac 1{1-\phi^2}$.
+Thus,
+\begin{equation}
+    \sigma_x^2 = \frac 1\tau \frac 1{1-\phi^2}
+\end{equation}
+\begin{equation}
+    x_t\sim \mathcal N \Big(0,\frac 1\tau \frac 1{1-\phi^2}\Big )
+\end{equation}
+Recalling that $y_t = x_t +\mu$,
+\begin{equation}
+    y_t \sim \mathcal N \Big(\mu,\frac {\tau ^{-1}}{1-\phi^2}\Big )
+\end{equation}
+Since the process is stationary, the distribution is the same for every $t$, thus:
+\begin{align} \label{y1_distribution}
+    y_1 &\sim \mathcal N \Big(\mu,\frac {\tau ^{-1}}{1-\phi^2}\Big ) \\ 
+    \mathbb E[y_1|\mu,\phi,\tau] &= \mu \\
+    Var(y_1|\mu,\phi,\tau) &= \frac {\tau ^{-1}}{1-\phi^2}
+\end{align}
+
+\subsection{Point b}
+\subsubsection{Reparametrization}
+We can rewrite:
+\begin{equation}\label{new_form}
+    y_t = \beta_0+\beta_1y_t+\varepsilon_t
+\end{equation}
+starting from \ref{autoregressive_model}:
+\begin{align}
+    y_t &= \phi(y_t-\mu)+\varepsilon_t+\mu \\
+    & = \mu (1-\phi) + \phi y_t +\varepsilon_t
+\end{align}
+we can then identify:
+\begin{equation}\label{new_parametrization}
+    \beta_0 = \mu (1-\phi) \quad\quad \beta_1= \phi
+\end{equation}
+we can express $\mu$ in terms of $\beta$:
+\begin{equation}
+    \mu = \frac{\beta_0}{1-\beta_1}
+\end{equation}
+Since the original prior was
+\begin{equation}
+    \pi (\mu,\phi,\tau) \propto I(-1<\phi<1)\frac 1\tau\ ,
+\end{equation}
+using the change of variables:
+\begin{equation}
+    \pi(\beta_0,\beta_1,\tau) = \pi(\mu,\phi,\tau)\cdot |\mathbf J|
+\end{equation}
+\begin{equation}
+    |\mathbf J| = \det\begin{bmatrix}
+        \frac{\partial \mu}{\partial \beta_0} & \frac{\partial \mu}{\partial \beta_1}\\
+        \frac{\partial \phi}{\partial \beta_0} & \frac{\partial \phi}{\partial \beta_1}
+    \end{bmatrix}= \det \begin{bmatrix}
+        \frac{1}{1-\beta_1} & \frac{\beta_0}{(1-\beta_1)^2}\\
+        0 & 1
+    \end{bmatrix}=\frac{1}{1-\beta_1}
+\end{equation}
+Thus,
+\begin{equation}
+\pi(\beta_0,\beta_1,\tau) \propto I(-1<\beta_1<1)\frac{1}{1-\beta_1}\frac 1\tau
+\end{equation}
+\subsubsection{Posterior distribution}
+Starting from \ref{new_form}, since $\varepsilon_t\sim \mathcal N(0,\tau ^{-1})$, we can see that, for $t=2,\dots, n$, 
+\begin{equation}
+    y_t|y_{t-1}, \beta,\tau \sim \mathcal N(\beta_0+\beta_1 y_{t-1}, \tau ^{-1})
+\end{equation}
+Thus the likelihood is:
+\begin{equation}
+    L(\beta,\tau) \propto \tau ^{\frac{n-1}{2}} \exp \Big ( -\frac \tau 2 \sum_{t=2} ^ n(y_t-\beta_0-\beta_1y_{t-1} )^2 \Big )
+\end{equation}
+
+Considering the matrix forms $\pmb \beta = (\beta_0, \beta_1) ^\top$ and $\mathbf X = \begin{bmatrix}
+    \mathbf 1& \mathbf y_{1:(n-1)}
+\end{bmatrix}$,
+
+Then
+\begin{equation}
+    L(\pmb\beta,\tau ) \propto \tau ^{\frac {n-1}2} \exp\Big (-\frac \tau 2 (\pmb y_{2:n} - \mathbf X\pmb\beta) ^\top(\pmb y_{2:n}-\mathbf X\pmb\beta ) \Big )
+\end{equation}
+
+From \ref{y1_distribution}, considering the new parameterization \ref{new_parametrization}, we have that
+\begin{equation}
+    y_1\sim \mathcal N\Big (\frac{\beta_0}{1-\beta_1}, \frac{\tau^{-1}}{1-\beta_1^2}\Big )
+\end{equation}
+Thus, the initial density is proportional to:
+\begin{equation}
+\sqrt{1-\beta_1^2}\tau ^{1/2}\exp\Big (-\frac \tau 2 (1-\beta_1^2) \Big (y_1-\frac{\beta_0}{1-\beta_1}\Big ) ^2\Big )
+\end{equation}
+
+We can now get the posterior as
+\begin{equation}
+    \pi(\pmb\beta, \tau |\pmb y) \propto \text{likelihood} \times \text{initial density} \times \text{prior}
+\end{equation}
+\begin{align}
+\pi(\pmb \beta,\tau | \mathbf y ) &\propto \tau ^{\frac {n-1}2} \exp\Big (-\frac \tau 2 (\pmb y_{2:n} - \mathbf X\pmb\beta) ^\top(\pmb y_{2:n}-\mathbf X\pmb\beta ) \Big )\cdot \\ & \cdot \sqrt{1-\beta_1^2}\tau ^{1/2}\exp\Big (-\frac \tau 2 (1-\beta_1^2) \Big (y_1-\frac{\beta_0}{1-\beta_1}\Big ) ^2\Big )\cdot \\ &\cdot I(-1<\beta_1<1)\frac{1}{1-\beta_1}\frac 1\tau
+\end{align}
+Rearranging all the terms, we obtain the final formulation of the posterior distribution:
+
+\begin{align}
+    \pi(\pmb \beta,\tau | \mathbf y ) \propto&
+   \tau ^{\frac {n}2-1}\exp\Big (-\frac \tau 2 (\pmb y_{2:n} - \mathbf X\pmb \beta) ^\top(\pmb y_{2:n}-\mathbf X\pmb\beta ) \Big )\cdot \\ 
+   &\frac{\sqrt{1-\beta_1^2}I(-1<\beta_1<1)}{1-\beta_1}\exp\Big (-\frac \tau 2 (1-\beta_1^2) \Big (y_1-\frac{\beta_0}{1-\beta_1}\Big ) ^2\Big )
+\end{align}
+
+\subsection{Point c}
+In a Metropolis-Hastings independence sampler, the proposal distribution $Q(y|x)$ does not depend on the current state $x$, and so, considering the proposal
+\begin{equation}\label{first_part_exp}
+    (*) = first(\pmb \beta, \tau |\pmb y) = \tau ^{\frac {n}2-1}\exp\Big (-\frac \tau 2 (\pmb y_{2:n} - \mathbf X\pmb\beta) ^\top( \pmb y_{2:n}-\mathbf X\pmb \beta ) \Big )\ ,
+\end{equation}
+we have:
+\begin{equation}
+    Q(\pmb \beta ',\tau ' | \pmb\beta,\tau ,\mathbf y) = Q(\pmb\beta', \tau ' |\mathbf y) = first(\pmb \beta',\tau '|\pmb y)\ .
+\end{equation}
+Then, we can use the acceptance probability formula for the independence sampler:
+\begin{equation}
+    \alpha(x,y)  = \min \Big (1,\frac{\pi(y)Q(x)}{\pi(x)Q(y)}\Big )
+\end{equation}
+that, in our case, is:
+\begin{equation}
+    \alpha(\pmb \beta', \tau' |\pmb \beta, \tau ,\pmb y) = \min \Big (1, \frac{\pi(\pmb \beta', \tau' |\pmb y)Q(\pmb \beta, \tau |\pmb y)}{\pi(\pmb \beta, \tau |\pmb y)Q(\pmb \beta', \tau' |\pmb y)}\Big )
+\end{equation}
+defining 
+\begin{equation}
+second(\pmb \beta, \tau|\pmb y)= \frac{\sqrt{1-\beta_1^2}I(-1<\beta_1<1)}{1-\beta_1}\exp\Big (-\frac \tau 2 (1-\beta_1^2) \Big (y_1-\frac{\beta_0}{1-\beta_1}\Big ) ^2\Big )
+\end{equation}
+we notice that
+\begin{itemize}
+    \item $\pi(\pmb \beta, \tau |\pmb y) = first(\pmb \beta,\tau |\pmb y) \cdot second(\pmb \beta,\tau |\pmb y)$
+    \item $\pi(\pmb \beta', \tau' |\pmb y) = first(\pmb \beta',\tau '|\pmb y) \cdot second(\pmb \beta',\tau '|\pmb y)$
+    \item $Q(\pmb\beta, \tau  |\mathbf y) = first(\pmb \beta,\tau|\pmb y)$
+    \item $Q(\pmb\beta', \tau ' |\mathbf y) = first(\pmb \beta',\tau '|\pmb y)$
+\end{itemize}
+And so:
+\begin{equation}
+    \frac{\pi(\pmb \beta', \tau' |\pmb y)Q(\pmb \beta, \tau |\pmb y)}{\pi(\pmb \beta, \tau |\pmb y)Q(\pmb \beta', \tau' |\pmb y)} = \frac{first(\pmb \beta',\tau '|\pmb y) \cdot second(\pmb \beta',\tau '|\pmb y)\cdot first(\pmb \beta,\tau|\pmb y) }{first(\pmb \beta,\tau |\pmb y) \cdot second(\pmb \beta,\tau |\pmb y)\cdot first(\pmb \beta',\tau '|\pmb y)} = \frac{second(\pmb \beta',\tau '|\pmb y)}{second(\pmb \beta,\tau |\pmb y)}
+\end{equation}
+Thus, the acceptance rate formula becomes:
+\begin{equation}
+     \alpha(\pmb \beta', \tau' |\pmb \beta, \tau ,\pmb y) &= \min\Big (1, \frac{second(\pmb \beta',\tau '|\pmb  y)}{second(\pmb \beta,\tau |\pmb y)}\Big )
+\end{equation}
+Applying the logarithm:
+\begin{equation}
+    \log \alpha(\pmb \beta', \tau' |\pmb \beta, \tau ,\pmb y) = \min \Big (0,\log second(\pmb \beta',\tau '|\pmb  y)-\log second(\pmb \beta,\tau |\pmb y)\Big)
+\end{equation}
+where:
+\begin{equation}
+    \log second(\pmb \beta,\tau |\pmb y)= \frac 12 \log (1-\beta_1^2)-\log (1-\beta_1) -\frac \tau 2 (1-\beta_1^2) \Big (y_1-\frac{\beta_0}{1-\beta_1}\Big ) ^2
+\end{equation}
+So we get the final expression of $\log \alpha $ as:
+\begin{equation}
+    \log \alpha
+=
+\min \Bigg(
+0,\,
+\frac{1}{2}
+\log
+\frac{1-\beta_1'^2}{1-\beta_1^2}
+-
+\log
+\frac{1-\beta_1'}{1-\beta_1}
+-
+\frac{1}{2}
+\Big[
+\tau'(1-\beta_1'^2)
+\left(
+y_1 - \frac{\beta_0'}{1-\beta_1'}
+\right)^2
+-
+\tau(1-\beta_1^2)
+\left(
+y_1 - \frac{\beta_0}{1-\beta_1}
+\right)^2
+\Big]
+\Bigg)
+\end{equation}
+with automatic rejection if $|\beta_1|\geq 1$.
+
+\subsection{Point d}
+
+Let $\pmb S = (\pmb y-\pmb X\pmb \beta ) ^\top (\pmb y-\pmb X \pmb\beta )$. We can define the OLS estimator and the precision matrix:
+
+\begin{itemize}
+    \item $\pmb Q = \pmb X^\top \pmb X$
+    \item $\hat {\pmb \beta} = (\pmb X ^\top \pmb X)^{-1} \pmb X^\top \pmb y = \pmb Q^{-1} \pmb X^\top \pmb y$
+\end{itemize}
+
+We can rewrite the term inside the exponent by adding and subtracting $\pmb X \hat {\pmb \beta}$:
+\begin{equation}
+    (\pmb y-\pmb X\pmb \beta ) = (\pmb{y-X\hat \beta}) + (\pmb{X\hat \beta - X\beta}) = \hat \varepsilon + \pmb X(\pmb{\hat \beta -\beta})
+\end{equation}
+
+When we take the inner product $(\pmb y-\pmb X\pmb \beta ) ^\top (\pmb y-\pmb X\pmb \beta )$, we get:
+\begin{equation}
+    \hat \varepsilon ^\top \hat \varepsilon+(\pmb{\hat \beta - \beta} )^\top \pmb{X^\top X}(\pmb{\hat \beta -\beta} )+ 2\hat \varepsilon ^ T\pmb X(\pmb{\hat \beta - \beta})
+\end{equation}
+
+The term $2 \hat \varepsilon ^T \pmb X(\pmb{\hat \beta -\beta})$ vanishes because, by the definition of OLS residuals, $\hat \varepsilon$ is orthogonal to the column space of $\pmb X$: 
+\begin{equation}
+    \hat \varepsilon ^\top \pmb X = (\pmb{y-X\hat \beta})^\top\pmb X = \pmb y^\top \pmb X - \pmb{\hat \beta}^\top \pmb X^\top \pmb X = \pmb y^\top \pmb X -\pmb y^\top \pmb{XQ}^{-1} \pmb Q =\pmb 0
+\end{equation}
+
+So we are left with:
+\begin{equation}
+    (\pmb y-\pmb X\pmb \beta ) ^\top (\pmb y-\pmb X \pmb\beta ) = \hat \varepsilon ^\top \hat \varepsilon+(\pmb{ \beta - \hat\beta} )^\top \pmb Q(\pmb{\beta - \hat \beta})
+\end{equation}
+
+Substituting back into \ref{first_part_exp},
+
+\begin{equation}
+    \exp \Big (-\frac \tau 2 [(\pmb{\beta - \hat \beta})^\top \pmb Q(\pmb{\beta -\hat \beta}) + \hat \varepsilon ^\top \hat \varepsilon]\Big ) = \exp \Big (-\frac \tau 2 (\pmb{\beta - \hat \beta})^\top \pmb Q(\pmb{\beta -\hat \beta})\Big )\exp \Big (-\frac \tau 2\hat \varepsilon ^\top \hat \varepsilon\Big )
+\end{equation}
+
+Splitting the term $\tau$:
+\begin{equation}
+    \tau ^{\frac n2-1} = \tau ^{\frac p2}\cdot \tau ^{\frac {n-p}2-1}
+\end{equation}
+
+Since $|\pmb Q|^{\frac 12}$ (the determinant of $\pmb X^\top \pmb X$) is a constant with respect to $\pmb \beta$ and $\tau$ (assuming $\pmb X$ is fixed), we can multiply and divide by it.
+
+Putting it all together, the expression factors exactly as:
+
+\begin{equation}
+     |\pmb Q |^{\frac 12} \tau^{\frac p2} \exp \Big ( -\frac \tau 2(\pmb \beta - \hat {\pmb \beta} )^\top \pmb Q(\pmb \beta -  \hat {\pmb \beta} ) \Big ) \times \tau^{\frac{n-p}2 -1} \exp \Big (-\frac \tau 2 \hat {\pmb \varepsilon} ^\top \hat{\pmb \varepsilon}\Big ) 
+\end{equation}
+
+We can now identify the resulting kernels:
+
+\begin{itemize}
+    \item $|\pmb Q |^{\frac 12} \tau^{\frac p2} \exp \Big ( -\frac \tau 2(\pmb \beta - \hat {\pmb \beta} )^\top \pmb Q(\pmb \beta -  \hat {\pmb \beta} ) \Big )$ is the kernel of a Multivariate Normal distribution
+$$
+\beta | \tau, y \sim \mathcal N (\hat \beta, (\tau \pmb Q)^{-1})
+$$
+
+\item $\tau^{\frac{n-p}2 -1} \exp \Big (-\frac \tau 2 \hat {\pmb \varepsilon} ^\top \hat{\pmb \varepsilon}\Big )$ is the kernel of a Gamma distribution:
+$$
+\tau | y \sim \text{Gamma}\Big ( a = \frac{n-p}2, b=\frac{\hat \varepsilon^\top \hat \varepsilon}{2} \Big )
+$$
+\end{itemize}
+
+This factorization allows us to sample from the joint proposal $\pmb Q$, drawing firstly from $\tau '\sim \text{Gamma}(\frac{n-p}{2}, \frac{\hat \varepsilon^\top \hat \varepsilon}{2})$ and then, given $\tau '$, drawing $\beta '\sim \mathcal N(\hat \beta , (\tau ' \pmb Q)^{-1})$.
+
+\subsection{Point e}
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlkwd{library}\hldef{(mvtnorm)}
+
+\hldef{mh_sampler} \hlkwb{<-} \hlkwa{function}\hldef{(}\hlkwc{y}\hldef{,} \hlkwc{n_iter} \hldef{=} \hlnum{10000}\hldef{,} \hlkwc{burn_in} \hldef{=} \hlnum{1000}\hldef{) \{}
+    \hldef{n} \hlkwb{<-} \hlkwd{length}\hldef{(y)}
+    \hldef{p} \hlkwb{<-} \hlnum{2}
+
+    \hlcom{# 1. Prepare data for the proposal (*)}
+    \hldef{y_curr} \hlkwb{<-} \hldef{y[}\hlnum{2}\hlopt{:}\hldef{n]}
+    \hldef{X} \hlkwb{<-} \hlkwd{cbind}\hldef{(}\hlnum{1}\hldef{, y[}\hlnum{1}\hlopt{:}\hldef{(n} \hlopt{-} \hlnum{1}\hldef{)])}
+    \hldef{Q} \hlkwb{<-} \hlkwd{t}\hldef{(X)} \hlopt{%*%} \hldef{X}
+    \hldef{Q_inv} \hlkwb{<-} \hlkwd{solve}\hldef{(Q)}
+    \hldef{beta_hat} \hlkwb{<-} \hldef{Q_inv} \hlopt{%*%} \hlkwd{t}\hldef{(X)} \hlopt{%*%} \hldef{y_curr}
+    \hldef{ssr} \hlkwb{<-} \hlkwd{sum}\hldef{((y_curr} \hlopt{-} \hldef{X} \hlopt{%*%} \hldef{beta_hat)}\hlopt{^}\hlnum{2}\hldef{)}
+
+    \hlcom{# 2. Storage}
+    \hldef{samples} \hlkwb{<-} \hlkwd{matrix}\hldef{(}\hlnum{NA}\hldef{,} \hlkwc{nrow} \hldef{= n_iter,} \hlkwc{ncol} \hldef{=} \hlnum{3}\hldef{)}
+    \hlkwd{colnames}\hldef{(samples)} \hlkwb{<-} \hlkwd{c}\hldef{(}\hlsng{"beta0"}\hldef{,} \hlsng{"beta1"}\hldef{,} \hlsng{"tau"}\hldef{)}
+    \hldef{acc_count} \hlkwb{<-} \hlnum{0}
+
+    \hlcom{# 3. Log-second function helper}
+    \hldef{log_second} \hlkwb{<-} \hlkwa{function}\hldef{(}\hlkwc{b0}\hldef{,} \hlkwc{b1}\hldef{,} \hlkwc{tau}\hldef{,} \hlkwc{y1}\hldef{) \{}
+        \hlkwa{if} \hldef{(}\hlkwd{abs}\hldef{(b1)} \hlopt{>=} \hlnum{1}\hldef{)}
+            \hlkwd{return}\hldef{(}\hlopt{-}\hlnum{Inf}\hldef{)}  \hlcom{# Stationary constraint}
+        \hldef{val} \hlkwb{<-} \hlnum{0.5} \hlopt{*} \hlkwd{log}\hldef{(}\hlnum{1} \hlopt{-} \hldef{b1}\hlopt{^}\hlnum{2}\hldef{)} \hlopt{-} \hlkwd{log}\hldef{(}\hlnum{1} \hlopt{-} \hldef{b1)} \hlopt{-} \hldef{(tau}\hlopt{/}\hlnum{2}\hldef{)} \hlopt{*} \hldef{(}\hlnum{1} \hlopt{-} \hldef{b1}\hlopt{^}\hlnum{2}\hldef{)} \hlopt{*} \hldef{(y1} \hlopt{-} \hldef{b0}\hlopt{/}\hldef{(}\hlnum{1} \hlopt{-} \hldef{b1))}\hlopt{^}\hlnum{2}
+        \hlkwd{return}\hldef{(val)}
+    \hldef{\}}
+
+    \hlcom{# Initial state}
+    \hldef{samples[}\hlnum{1}\hldef{, ]} \hlkwb{<-} \hlkwd{c}\hldef{(beta_hat,} \hlnum{1}\hldef{)}
+
+    \hlcom{# 4. Metropolis-Hastings Loop}
+    \hlkwa{for} \hldef{(i} \hlkwa{in} \hlnum{2}\hlopt{:}\hldef{n_iter) \{}
+        \hlcom{# Step d: Compositional Sampling from Proposal Q}
+        \hldef{tau_prop} \hlkwb{<-} \hlkwd{rgamma}\hldef{(}\hlnum{1}\hldef{,} \hlkwc{shape} \hldef{= (n} \hlopt{-} \hldef{p)}\hlopt{/}\hlnum{2}\hldef{,} \hlkwc{rate} \hldef{= ssr}\hlopt{/}\hlnum{2}\hldef{)}
+        \hldef{beta_prop} \hlkwb{<-} \hlkwd{rmvnorm}\hldef{(}\hlnum{1}\hldef{,} \hlkwc{mean} \hldef{= beta_hat,} \hlkwc{sigma} \hldef{=} \hlkwd{solve}\hldef{(tau_prop} \hlopt{*} \hldef{Q))}
+
+        \hldef{b0_p} \hlkwb{<-} \hldef{beta_prop[}\hlnum{1}\hldef{]}
+        \hldef{b1_p} \hlkwb{<-} \hldef{beta_prop[}\hlnum{2}\hldef{]}
+        \hldef{b0_c} \hlkwb{<-} \hldef{samples[i} \hlopt{-} \hlnum{1}\hldef{,} \hlnum{1}\hldef{]}
+        \hldef{b1_c} \hlkwb{<-} \hldef{samples[i} \hlopt{-} \hlnum{1}\hldef{,} \hlnum{2}\hldef{]}
+        \hldef{tau_c} \hlkwb{<-} \hldef{samples[i} \hlopt{-} \hlnum{1}\hldef{,} \hlnum{3}\hldef{]}
+
+        \hlcom{# Step c: Compute Log-Acceptance Ratio}
+        \hldef{log_alpha} \hlkwb{<-} \hlkwd{log_second}\hldef{(b0_p, b1_p, tau_prop, y[}\hlnum{1}\hldef{])} \hlopt{-} \hlkwd{log_second}\hldef{(b0_c, b1_c, tau_c, y[}\hlnum{1}\hldef{])}
+
+        \hlkwa{if} \hldef{(}\hlkwd{log}\hldef{(}\hlkwd{runif}\hldef{(}\hlnum{1}\hldef{))} \hlopt{<} \hldef{log_alpha) \{}
+            \hldef{samples[i, ]} \hlkwb{<-} \hlkwd{c}\hldef{(b0_p, b1_p, tau_prop)}
+            \hldef{acc_count} \hlkwb{<-} \hldef{acc_count} \hlopt{+} \hlnum{1}
+        \hldef{\}} \hlkwa{else} \hldef{\{}
+            \hldef{samples[i, ]} \hlkwb{<-} \hldef{samples[i} \hlopt{-} \hlnum{1}\hldef{, ]}
+        \hldef{\}}
+    \hldef{\}}
+
+    \hlkwd{cat}\hldef{(}\hlsng{"Overall Acceptance Rate:"}\hldef{, acc_count}\hlopt{/}\hldef{(n_iter} \hlopt{-} \hlnum{1}\hldef{),} \hlsng{"\textbackslash{}n"}\hldef{)}
+    \hlkwd{return}\hldef{(samples[(burn_in} \hlopt{+} \hlnum{1}\hldef{)}\hlopt{:}\hldef{n_iter, ])}
+\hldef{\}}
+
+
+\hlcom{# Assuming 'res' is the output from mh_sampler(y)}
+\hldef{res_mcmc} \hlkwb{<-} \hlkwd{as.data.frame}\hldef{(res)}
+\end{alltt}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error:\\\#\# ! object 'res' not found}}\begin{alltt}
+\hlcom{# 1. Trace Plots}
+\hlkwd{par}\hldef{(}\hlkwc{mfrow} \hldef{=} \hlkwd{c}\hldef{(}\hlnum{3}\hldef{,} \hlnum{1}\hldef{),} \hlkwc{mar} \hldef{=} \hlkwd{c}\hldef{(}\hlnum{4}\hldef{,} \hlnum{4}\hldef{,} \hlnum{2}\hldef{,} \hlnum{1}\hldef{))}
+\hlkwd{plot}\hldef{(res_mcmc}\hlopt{$}\hldef{beta0,} \hlkwc{type} \hldef{=} \hlsng{"l"}\hldef{,} \hlkwc{col} \hldef{=} \hlsng{"steelblue"}\hldef{,} \hlkwc{main} \hldef{=} \hlsng{"Trace Plot: beta0"}\hldef{,} \hlkwc{ylab} \hldef{=} \hlsng{"Value"}\hldef{)}
+\end{alltt}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error:\\\#\# ! object 'res\_mcmc' not found}}\begin{alltt}
+\hlkwd{plot}\hldef{(res_mcmc}\hlopt{$}\hldef{beta1,} \hlkwc{type} \hldef{=} \hlsng{"l"}\hldef{,} \hlkwc{col} \hldef{=} \hlsng{"darkgreen"}\hldef{,} \hlkwc{main} \hldef{=} \hlsng{"Trace Plot: beta1"}\hldef{,} \hlkwc{ylab} \hldef{=} \hlsng{"Value"}\hldef{)}
+\end{alltt}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error:\\\#\# ! object 'res\_mcmc' not found}}\begin{alltt}
+\hlkwd{plot}\hldef{(res_mcmc}\hlopt{$}\hldef{tau,} \hlkwc{type} \hldef{=} \hlsng{"l"}\hldef{,} \hlkwc{col} \hldef{=} \hlsng{"firebrick"}\hldef{,} \hlkwc{main} \hldef{=} \hlsng{"Trace Plot: tau"}\hldef{,} \hlkwc{ylab} \hldef{=} \hlsng{"Value"}\hldef{)}
+\end{alltt}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error:\\\#\# ! object 'res\_mcmc' not found}}\begin{alltt}
+\hlcom{# 2. Autocorrelation Plots}
+\hlkwd{par}\hldef{(}\hlkwc{mfrow} \hldef{=} \hlkwd{c}\hldef{(}\hlnum{1}\hldef{,} \hlnum{3}\hldef{))}
+\hlkwd{acf}\hldef{(res_mcmc}\hlopt{$}\hldef{beta0,} \hlkwc{main} \hldef{=} \hlsng{"ACF: beta0"}\hldef{)}
+\end{alltt}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error:\\\#\# ! object 'res\_mcmc' not found}}\begin{alltt}
+\hlkwd{acf}\hldef{(res_mcmc}\hlopt{$}\hldef{beta1,} \hlkwc{main} \hldef{=} \hlsng{"ACF: beta1"}\hldef{)}
+\end{alltt}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error:\\\#\# ! object 'res\_mcmc' not found}}\begin{alltt}
+\hlkwd{acf}\hldef{(res_mcmc}\hlopt{$}\hldef{tau,} \hlkwc{main} \hldef{=} \hlsng{"ACF: tau"}\hldef{)}
+\end{alltt}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error:\\\#\# ! object 'res\_mcmc' not found}}\end{kframe}
+\end{knitrout}
+
+\end{document}

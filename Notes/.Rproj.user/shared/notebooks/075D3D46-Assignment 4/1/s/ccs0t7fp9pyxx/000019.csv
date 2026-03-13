@@ -1,0 +1,4 @@
+"0",""
+"0","# mall"
+"0","ggplot(groceries, aes(y = turnover, x = as.factor(mall))) + geom_boxplot()"
+"0",""
