@@ -423,7 +423,7 @@ Notice also that high correlated component may lead to slow convergence.
 #### Example (Power Plants)
 
 \begin{align}
-f(\alpha, \beta, \lambda_1,\dots, \lambda_n | y_1,\dots, y_n) & \propto  f(\alpha,\beta, \lambda_{1:n}, y_{1:n}) = \\ 
+f(\alpha, \beta, \lambda_1,\dots, \lambda_n | y_1,\dots, y_n) & \propto  f(\alpha,\beta, \pmb \lambda_{1:n}, \pmb y_{1:n}) = \\ 
 
 & = e^{-\alpha}\beta^{0.1-1} e^{-\beta}\prod_{i=1}^n
    \frac{\beta^\alpha}{\Gamma(\alpha)} \lambda_i^{\alpha-1} e^{-\beta \lambda_i}   \prod_{i=1}^n \frac{(\lambda_i t_i)^{y_i} e^{-\lambda_i t_i}}{y_i!}
@@ -434,7 +434,7 @@ f(\alpha, \beta, \lambda_1,\dots, \lambda_n | y_1,\dots, y_n) & \propto  f(\alph
 - $\beta$
 
 \begin{align}
-\pi(\beta | \alpha, \lambda_{1:n}, y_{1:n}) & = \beta^{-0.9} e^{-\beta} \prod_{i=1}^n \beta^\alpha e^{-\beta \lambda_i} = \\
+\pi(\beta | \alpha, \pmb\lambda_{1:n},\pmb y_{1:n}) & = \beta^{-0.9} e^{-\beta} \prod_{i=1}^n \beta^\alpha e^{-\beta \lambda_i} = \\
 
 & = \beta^{(\alpha n - 0.9)} e^{-\beta(1+ \sum_{i=1}^n \lambda_i)}
 \\
@@ -443,15 +443,110 @@ f(\alpha, \beta, \lambda_1,\dots, \lambda_n | y_1,\dots, y_n) & \propto  f(\alph
 
 - $\lambda_i \quad i=1,2,\dots, n$
 
-$$
-a
-$$
+\begin{align}
+\pi(\lambda_i | \alpha, \beta, \pmb \lambda_{-i}, \pmb y_{1:n}) & \propto 
+\lambda_i^{\alpha-1+y_i}e^{-(\beta + t_i)\lambda_i} \\
+& \sim \Gamma(\alpha+y_i, \beta+t_i)
+\end{align}
 
 - $\alpha$
 
 $$
-b
+\pi (\alpha | \beta, \pmb \lambda_{1:n} , \pmb y_{1:n}) \propto e^{(-1+n\ln (\beta)+\sum_{i=1}^n\ln(\lambda_i))\alpha}\ \Gamma(\alpha)^{-n}
+$$
+We can't simulate from this. Instead, we can use Metropolis random walk proposal, e.g.
+
+$$
+\alpha ' = \alpha, \beta, \pmb \lambda_{1:n}, \pmb y_{1:n} \sim \mathcal N \begin{pmatrix} \alpha, \sigma_\alpha ^2\end{pmatrix}
+$$
+Since the proposal is symmetric, meaning $Q(\alpha'|\alpha)= Q(\alpha|\alpha')$ because it's a Normal distribution centered at the current state, the proposal densities cancel out. Te acceptance probability is:
+
+$$
+\alpha_{acc}(\alpha, \alpha') = \min \begin{pmatrix}1, \frac{\pi(\alpha'|\beta, \pmb \lambda_{1:n}, \pmb y_{1:n})}{\pi(\alpha|\beta, \pmb \lambda_{1:n}, \pmb y_{1:n})}\end{pmatrix}
+$$
+
+Using the conditional posterior derived for $\alpha$:$$\pi (\alpha | \dots) \propto \exp\left[ \left(-1 + n\ln\beta + \sum_{i=1}^n \ln\lambda_i \right)\alpha \right] \Gamma(\alpha)^{-n}$$
+
+The ratio $\frac{\pi(\alpha')}{\pi(\alpha)}$ becomes:
+
+$$\frac{\exp\left[ \left(-1 + n\ln\beta + \sum \ln\lambda_i \right)\alpha' \right] \Gamma(\alpha')^{-n}}{\exp\left[ \left(-1 + n\ln\beta + \sum \ln\lambda_i \right)\alpha \right] \Gamma(\alpha)^{-n}}$$
+**Log-Acceptance Rate**
+
+In practice, we always compute this on the log scale to maintain numerical stability (especially with the $\Gamma$ functions and the large products):$$\log R = \left(-1 + n\ln\beta + \sum_{i=1}^n \ln\lambda_i \right)(\alpha' - \alpha) + n \left[ \ln\Gamma(\alpha) - \ln\Gamma(\alpha') \right]$$
+
+:::
+
+::: {.example-block}
+
+#### Example (Simple Linear Regression)
+
+$$
+y_i | \beta_1, \beta_2, \tau \stackrel{iid}{\sim} \mathcal N(\beta_1 + \beta_2 x_i, \tau^{-1})
+$$
+
+where $\tau$ is the precision (inverse of variance).
+
+**Hierarchical priors:**  
+
+- $\beta_1 \sim \mathcal N(0, \frac{1}{\tau_1})$
+- $\beta_2 \sim \mathcal N(0, \frac{1}{\tau_2})$
+- $\tau \sim \Gamma(a,b)$
+
+Prior:
+$$
+\pi(\beta_1, \beta_2, \tau) = \pi(\beta_1) \pi(\beta_2) \pi(\tau) = \frac{\sqrt{\tau_1}}{\sqrt{2\pi}} \exp\left(-\frac{\tau_1}{2}\beta_1^2\right) \cdot \frac{\sqrt{\tau_2}}{\sqrt{2\pi}} \exp\left(-\frac{\tau_2}{2}\beta_2^2\right) \cdot \frac{b^a}{\Gamma(a)} \tau^{a-1} e^{-b\tau}
+$$
+
+Likelihood: 
+$$
+L(\beta_1, \beta_2, \tau | y) = \prod_{i=1}^n \frac{\sqrt{\tau}}{\sqrt{2\pi}} \exp\left(-\frac{\tau}{2}(y_i - \beta_1 - \beta_2 x_i)^2\right)
+$$
+
+A prior distribution is conjugate to a likelihood function if the resulting posterior distribution is in the same family as the prior distribution. In this case, the likelihood is Gaussian and the priors for $\beta_1$ and $\beta_2$ are also Gaussian, which means that the posterior distributions for $\beta_1$ and $\beta_2$ will also be Gaussian. However, the prior for $\tau$ is a Gamma distribution, and the likelihood does not lead to a Gamma posterior for $\tau$, so we cannot use Gibbs sampling for $\tau$.
+
+
+
+Posterior:
+$$
+\pi(\beta_1, \beta_2, \tau | y) \propto L(\beta_1, \beta_2, \tau | y) \cdot \pi(\beta_1, \beta_2, \tau)=
+$$
+$$
+= \left( \prod_{i=1}^n \frac{\sqrt{\tau}}{\sqrt{2\pi}} \exp\left(-\frac{\tau}{2}(y_i - \beta_1 - \beta_2 x_i)^2\right) \right) \cdot \left( \frac{\sqrt{\tau_1}}{\sqrt{2\pi}} \exp\left(-\frac{\tau_1}{2}\beta_1^2\right) \cdot \frac{\sqrt{\tau_2}}{\sqrt{2\pi}} \exp\left(-\frac{\tau_2}{2}\beta_2^2\right) \cdot \frac{b^a}{\Gamma(a)} \tau^{a-1} e^{-b\tau} \right)
+$$
+$$
+\propto \tau^{\frac{n}{2} + a - 1} \exp\left(-\frac{\tau}{2} \sum_{i=1}^n (y_i - \beta_1 - \beta_2 x_i)^2 - b\tau\right) \cdot \exp\left(-\frac{\tau_1}{2}\beta_1^2\right) \cdot \exp\left(-\frac{\tau_2}{2}\beta_2^2\right)
 $$
 
 
+Full condtionals:
+
+- $\beta_1$:
+$$
+\pi(\beta_1 | \beta_2, \tau, y) \propto \exp\left(-\frac{\tau}{2} \sum_{i=1}^n (y_i - \beta_1 - \beta_2 x_i)^2\right) \cdot \exp\left(-\frac{\tau_1}{2}\beta_1^2\right)
+$$
+$$
+\sim \mathcal N\left(\frac{\tau \sum_{i=1}^n (y_i - \beta_2 x_i) }{\tau n + \tau_1}, \frac{1}{\tau n + \tau_1}\right)
+$$
+- $\beta_2$:
+$$
+\pi(\beta_2 | \beta_1, \tau, y) \propto \exp\left(-\frac{\tau}{2} \sum_{i=1}^n (y_i - \beta_1 - \beta_2 x_i)^2\right) \cdot \exp\left(-\frac{\tau_2}{2}\beta_2^2\right)
+$$
+$$
+\sim \mathcal N\left(\frac{\tau \sum_{i=1}^n x_i (y_i - \beta_1) }{\tau \sum_{i=1}^n x_i^2 + \tau_2}, \frac{1}{\tau \sum_{i=1}^n x_i^2 + \tau_2}\right)
+$$
+- $\tau$:
+$$
+\pi(\tau | \beta_1, \beta_2, y) \propto \tau^{\frac{n}{2} + a - 1} \exp\left(-\frac{\tau}{2} \sum_{i=1}^n (y_i - \beta_1 - \beta_2 x_i)^2 - b\tau\right)
+$$
+$$
+\propto \Gamma\left(\frac{n}{2} + a, \frac{1}{2} \sum_{i=1}^n (y_i - \beta_1 - \beta_2 x_i)^2 + b\right)
+$$
+
+
+As $a,b \to 0$,
+$$
+\pi (\tau) = \frac{b^a}{\Gamma(a)} \tau^{a-1} e^{-b\tau} \xrightarrow[a,b \to 0]{} \frac{1}{\tau}
+$$
+
 :::
+

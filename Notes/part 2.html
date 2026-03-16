@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.8.27">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Alessandro Cavalieri">
+<meta name="dcterms.date" content="2026-02-20">
+
+<title>Bayesian inference and Markov chain Monte Carlo</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="part 2_files/libs/clipboard/clipboard.min.js"></script>
+<script src="part 2_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="part 2_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="part 2_files/libs/quarto-html/axe/axe-check.js" type="module"></script>
+<script src="part 2_files/libs/quarto-html/popper.min.js"></script>
+<script src="part 2_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="part 2_files/libs/quarto-html/anchor.min.js"></script>
+<link href="part 2_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="part 2_files/libs/quarto-html/quarto-syntax-highlighting-ed96de9b727972fe78a7b5d16c58bf87.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="part 2_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="part 2_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="part 2_files/libs/bootstrap/bootstrap-9e3ffae467580fdb927a41352e75a2e0.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="fullcontent quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Bayesian inference and Markov chain Monte Carlo</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Alessandro Cavalieri </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">February 20, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<style>
+:root {
+  --example-color: #2e7d32; /* Define your variable here (e.g., a forest green) */
+}
+
+.example-block {
+  color: var(--example-color);
+  border-left: 4px solid var(--example-color);
+  padding-left: 15px;
+  margin: 20px 0;
+  font-style: italic;
+}
+</style>
+<section id="hierarchical-bayesian-models" class="level2">
+<h2 class="anchored" data-anchor-id="hierarchical-bayesian-models">Hierarchical Bayesian Models</h2>
+<p>Hierarchical Bayesian Models, also known as Multilevel models, are Bayesian statistical models designed to handle structured, grouped, or nested data by modeling parameters themselves as random variables drawn from higher-level distributions.</p>
+<p>They are extremely useful when data comes from multiple related groups and you want partial pooling rather than treating groups as completely independent or completely identical.</p>
+<section id="comparison-with-classical-statistics" class="level4">
+<h4 class="anchored" data-anchor-id="comparison-with-classical-statistics">Comparison with classical statistics</h4>
+<p>In classical statistics, the parameters are estimated directly and each group might be modeled separately (no pooling) or all together (complete pooling). In Hierarchical Bayesian Modeling instead, parameters themselves are random variables, group-level parameters are drawn from a shared population distribution and that population has its own parameters.</p>
+</section>
+<section id="example-universities" class="level4 example-block">
+<h4 class="anchored" data-anchor-id="example-universities">Example (Universities)</h4>
+<p>Suppose to measure exam scores across multiple universities.</p>
+<p>You could:</p>
+<ul>
+<li>Fit one global mean (complete pooling)</li>
+<li>Fit one mean per university (no pooling)</li>
+</ul>
+<p>But reality is in between since universities differ but are not completely unrelated.</p>
+<p>Hierarchical models allows partial pooling: estimates are “shrunk” toward the global mean. The shrinkage is automatic in Bayesian inference.</p>
+</section>
+<section id="example-power-plants" class="level4 example-block">
+<h4 class="anchored" data-anchor-id="example-power-plants">Example (Power Plants)</h4>
+<p><img src="./power_plants.png" class="img-fluid"></p>
+<ul>
+<li><span class="math inline">\(i=1,2,\dots,n :=\)</span> Number of power plants</li>
+<li><span class="math inline">\(y_i:=\)</span> Number of failures of plant <span class="math inline">\(i\)</span></li>
+<li><span class="math inline">\(t_i :=\)</span> How long plant <span class="math inline">\(i\)</span> has been operating</li>
+</ul>
+<p>We want to estimate:</p>
+<ul>
+<li><span class="math inline">\(\lambda_i:=\)</span> Failure rate of plant <span class="math inline">\(i\)</span></li>
+</ul>
+<p>Units of <span class="math inline">\(\lambda_i:=\)</span> failures per unit time.</p>
+<p><strong>Likelihood level (data model)</strong></p>
+<p>The number of failures in time <span class="math inline">\(t_i\)</span>, with a rate of failure of <span class="math inline">\(\lambda_i\)</span> is Poisson distributed with parameter <span class="math inline">\(\mathbb E[y_i \vert \lambda_i] = \lambda_it_i\)</span></p>
+<p><span class="math display">\[
+y_i \vert \lambda_i \stackrel{iid}{\sim} Poisson(\lambda_i t_i)
+\]</span> This means that <span class="math inline">\(\frac{y_i}{t_i}\)</span> is the empirical rate estimate.</p>
+<p>If we stopped here, we’d estimate: <span class="math inline">\(\hat\lambda_i = \frac{y_i}{t_i}\)</span>, but that would be no pooling.</p>
+<p>Suppose that one plant ran only 3 months and it had 2 failures. Then <span class="math inline">\(\hat \lambda_i = \frac 2{3/12} = 8\)</span> =&gt; huge rate, but based on very little data. Hierarchical modeling prevents overreacting to small samples.</p>
+<p><strong>Hierarchical Prior Level</strong></p>
+<p>Instead of fixing each <span class="math inline">\(\lambda_i\)</span>, we assume:</p>
+<p><span class="math display">\[
+\lambda_i\vert \alpha, \beta \stackrel{iid}{\sim} \Gamma(\alpha,\beta)
+\]</span></p>
+<p>This means that:</p>
+<ul>
+<li>Plants are different</li>
+<li>Their rates come from a common population distribution</li>
+</ul>
+<p>Gamma distribution parameters, using a shape-rate parametrization:</p>
+<p><span class="math display">\[
+\mathbb E[\lambda_i] = \frac \alpha \beta\\
+\mathrm{Var}(\lambda_i) = \frac \alpha {\beta^2}
+\]</span></p>
+<p>Interpretation:</p>
+<ul>
+<li><span class="math inline">\(\frac \alpha\beta :=\)</span> average failure rate across plants</li>
+<li>Variance controls heterogeneity</li>
+</ul>
+<p><strong>Hyperprior Level</strong></p>
+<p>Now we don’t fix <span class="math inline">\(\alpha, \beta\)</span>. We model them as random:</p>
+<p><span class="math display">\[
+\alpha \sim \exp(1.0) \\
+\beta \sim \Gamma(0.1, 1.0)
+\]</span></p>
+<p>This makes the model <strong>fully Bayesian</strong>.</p>
+</section>
+<section id="directed-acyclic-graphs-dags" class="level3">
+<h3 class="anchored" data-anchor-id="directed-acyclic-graphs-dags">Directed Acyclic Graphs (DAGs)</h3>
+<p>A Directed Acyclic Graph (DAG) is a set of nodes, connected by directed arrows with no directed cycles. In Bayesian modeling, they represent conditional dependence structure.</p>
+<ul>
+<li>each node is a random variable</li>
+<li>each arrow is a direct probabilistic influence: <span class="math inline">\(A\to B\)</span> means <span class="math display">\[
+B|A \sim f(B|A)
+\]</span></li>
+</ul>
+<p>They encode how the joint distribution factorizes.</p>
+<section id="factorization-rule" class="level4">
+<h4 class="anchored" data-anchor-id="factorization-rule">Factorization rule</h4>
+<p><span class="math display">\[
+f(x_1,\dots,x_n) = \prod_i f(x_i|\mathrm{parents}(x_i))
+\]</span></p>
+</section>
+<section id="example-power-plants-1" class="level4 example-block">
+<h4 class="anchored" data-anchor-id="example-power-plants-1">Example (Power Plants)</h4>
+<center>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./power_plants_dag.png" class="img-fluid figure-img" style="width:50.0%"></p>
+<figcaption>Power plants example DAG</figcaption>
+</figure>
+</div>
+</center>
+<p>For the factorization rule:</p>
+<p><span class="math display">\[\begin{align}
+f(\alpha,\beta, \lambda_{1:n}, y_{1:n})
+&amp;= f(\alpha) f(\beta)
+   \prod_{i=1}^n f(\lambda_i \mid \alpha,\beta)
+   \prod_{i=1}^n f(y_i \mid \lambda_i)
+\\[6pt]
+&amp;= \underbrace{\alpha e^{-\alpha}}_{\text{Exp}(1)}
+   \;
+   \underbrace{\beta^{0.1-1} e^{-\beta}}_{\Gamma(0.1,1)}
+
+   \prod_{i=1}^n
+   \frac{\beta^\alpha}{\Gamma(\alpha)}
+   \lambda_i^{\alpha-1}
+   e^{-\beta \lambda_i}
+
+
+   \prod_{i=1}^n
+   \frac{(\lambda_i t_i)^{y_i} e^{-\lambda_i t_i}}{y_i!}
+\end{align}\]</span></p>
+<p>Posterior proportional to the joint: <span class="math display">\[
+f(\alpha, \beta, \lambda_1,\dots, \lambda_n | y_1,\dots, y_n) \propto f(\alpha,\beta, \lambda_{1:n}, y_{1:n}) = e^{-\alpha}\beta^{0.1-1} e^{-\beta}\prod_{i=1}^n
+   \frac{\beta^\alpha}{\Gamma(\alpha)} \lambda_i^{\alpha-1} e^{-\beta \lambda_i}   \prod_{i=1}^n \frac{(\lambda_i t_i)^{y_i} e^{-\lambda_i t_i}}{y_i!}
+\]</span> How to sample from this?</p>
+<ul>
+<li>Markov Chain Monte Carlo</li>
+</ul>
+</section>
+</section>
+</section>
+<section id="markov-chain-monte-carlo" class="level2">
+<h2 class="anchored" data-anchor-id="markov-chain-monte-carlo">Markov Chain Monte Carlo</h2>
+<p>It is a method for generating samples from an high-dimensional probabiliy mass or density function <span class="math inline">\(\pi(\mathbf x)\)</span>.</p>
+<p>The core idea is to construct and simulate a Markov Chain <span class="math inline">\(\{X_i\}_{i=0}^{\infty}\)</span> having <span class="math inline">\(\pi(\mathbf x)\)</span> as its stationary distribution.</p>
+<section id="ergodic-theorem-for-markov-chains" class="level4">
+<h4 class="anchored" data-anchor-id="ergodic-theorem-for-markov-chains">Ergodic Theorem for Markov Chains</h4>
+<p>If a chain is:</p>
+<ul>
+<li>Irreducible</li>
+<li>Aperiodic</li>
+<li>Positive recurrent</li>
+</ul>
+<p>Then: <span class="math display">\[
+X_t \overset{d}{\longrightarrow} \pi
+\]</span> and <span class="math display">\[
+\frac 1T \sum_{t=1}^{T} f(X_t) \to \mathbb E_{\pi}[f(X)]
+\]</span></p>
+<ul>
+<li><span class="math inline">\(T:=\)</span> number of iterations (length of the chain)</li>
+<li><span class="math inline">\(X_t:=\)</span> state of the Markov Chain at time <span class="math inline">\(t\)</span></li>
+</ul>
+<p>Each state <span class="math inline">\(X_t\)</span> is a specific value (or vector of values) of the parameters we are sampling. If the target distribution is <span class="math inline">\(\pi(\mathbf x)\)</span> with <span class="math inline">\(\mathbf x\in \mathbb R^d\)</span>, then <span class="math inline">\(X_t\in \mathbb R^d\)</span>.</p>
+</section>
+<section id="example-power-plants-2" class="level4 example-block">
+<h4 class="anchored" data-anchor-id="example-power-plants-2">Example (Power Plants)</h4>
+<p>Consider the Power Plant model: <span class="math inline">\(\pi(\alpha, \beta, \lambda_1,\dots, \lambda_n | y_1,\dots, y_n)\)</span></p>
+<p>The state of the chain is a tuple: <span class="math display">\[
+X_t = (\alpha^{(t)}, \beta^{(t)}, \lambda_1^{(t)}, \dots, \lambda_n^{(t)})
+\]</span></p>
+</section>
+<p>Each time the chain moves, it updates all or some of these variables, depending on the algorithm:</p>
+<ul>
+<li>Gibbs sampling</li>
+<li>Metropolis-Hastings</li>
+<li>Slice sampling</li>
+<li>HMC</li>
+<li>etc.</li>
+</ul>
+<section id="time-reversaibility-detailed-balance-equation-assumption" class="level4">
+<h4 class="anchored" data-anchor-id="time-reversaibility-detailed-balance-equation-assumption">Time reversaibility / detailed balance equation assumption</h4>
+<p>Backward transition probabilities: <span class="math display">\[
+\mathbb P(X_i=x | X_{i+1} = y) = \frac{\mathbb P(X_{i+1} = y | X_i = x) \mathbb P(X_i=x)}{\mathbb P(X_{i+1} = y)} \overset{i\to +\infty}{\longrightarrow} \frac{p(y|x)\pi(x)}{\pi(y)} = p^*(x|y)
+\]</span></p>
+<ul>
+<li><span class="math inline">\(p^*(x|y)\)</span> is also called the time-reversed transition kernel. It tells, for an observed chain at state <span class="math inline">\(y\)</span>, what is the probability that it was at <span class="math inline">\(x\)</span> one step earlier.</li>
+</ul>
+<p>If <span class="math inline">\(p(x|y) = p^*(x|y) \quad \forall x,y \implies\)</span> the Markov Chain is time reversible</p>
+<p>Time reversibility implies the <strong>detailed balance equation</strong>: <span class="math inline">\(\pi(x)p(y|x)=\pi(y)p(x|y)\)</span></p>
+<ul>
+<li>The Markov Chain flow from <span class="math inline">\(x\)</span> to <span class="math inline">\(y\)</span> equals the flow from <span class="math inline">\(y\)</span> to <span class="math inline">\(x\)</span>.</li>
+<li>The Markov Chain looks statistically identical when run forward or backward in time.</li>
+<li>Detailed balance implies that <span class="math inline">\(\pi\)</span> is a stationary distribution.</li>
+</ul>
+</section>
+<section id="metropolis-hastings-algorithm-discrete-space-version" class="level3">
+<h3 class="anchored" data-anchor-id="metropolis-hastings-algorithm-discrete-space-version">Metropolis-Hastings Algorithm (discrete space version)</h3>
+<p>Metropolis-Hastings builds a Markov Chain with transition probabilities <span class="math inline">\(p(y|x)\)</span>, so that the target distribution <span class="math inline">\(\pi(x)\)</span> becomes stationary.</p>
+<p>The algorithm works in two stages:</p>
+<ol type="1">
+<li>Propose a candidate <span class="math inline">\(y\sim Q(y|x)\)</span></li>
+<li>Accept or reject it with probability <span class="math inline">\(\alpha(y|x)\)</span></li>
+</ol>
+<p>So <span class="math inline">\(p(y|x) = Q(y|x) \alpha(y|x) \quad \text{for } y\neq x\)</span> is the probability of proposing <span class="math inline">\(y\)</span> AND accepting it.</p>
+<p>We stay at <span class="math inline">\(x\)</span> if:</p>
+<ul>
+<li>We propose something</li>
+<li>And reject it</li>
+</ul>
+<p>So the total probability of leaving <span class="math inline">\(x\)</span> is: <span class="math display">\[
+\sum_{y\neq x} Q(y|x) \alpha(y|x)
+\]</span> Therefore, the probability of not leaving (i.e.&nbsp;staying at <span class="math inline">\(x\)</span>) is: <span class="math display">\[
+p(y|x) = 1-\sum_{y\neq x} Q(y|x) \alpha(y|x)
+\]</span></p>
+<p>Putting everything together, the forward transition probabilities are given by: <span class="math display">\[
+p(y|x) = \begin{cases}
+Q(y|x) \alpha(y|x) \quad &amp; \text{for } y\neq x \\
+1-\sum_{y\neq x} Q(y|x) \alpha(y|x) \quad &amp; \text{for } y=x
+\end{cases}
+\]</span></p>
+<ul>
+<li><span class="math inline">\(Q(y|x):=\)</span> proposal conditional probability mass function</li>
+<li><span class="math inline">\(0\leq \alpha(y|x) \leq 1\)</span> is the probability of accepting the transition from <span class="math inline">\(x\)</span> to <span class="math inline">\(y\)</span></li>
+</ul>
+<section id="choosing-alpha-yx" class="level4">
+<h4 class="anchored" data-anchor-id="choosing-alpha-yx">Choosing <span class="math inline">\(\alpha (y|x)\)</span></h4>
+<p><span class="math display">\[
+\alpha(y|x) = \min \Big( 1, \frac{\pi (y) Q(x|y)}{\pi(x) Q(y|x)} \Big )
+\]</span></p>
+<p>This guarantees that the detailed balance equation holds.</p>
+</section>
+<section id="choosing-qyx" class="level4">
+<h4 class="anchored" data-anchor-id="choosing-qyx">Choosing <span class="math inline">\(Q(y|x)\)</span></h4>
+<p><strong>Minimal requirements: </strong></p>
+<ol type="1">
+<li><p>Support condition: <span class="math inline">\(Q(y|x)&gt;0 \quad \text{whenever } \pi(y) &gt;0\)</span></p></li>
+<li><p>Irreducibility: must be able to reach any state (possibly in multiple steps)</p></li>
+</ol>
+<p>A good proposal should account for:</p>
+<ul>
+<li>High acceptance rate</li>
+<li>Large moves</li>
+<li>Fast exploration (low autocorrelation)</li>
+</ul>
+<p><strong>Trade-offs</strong>:</p>
+<ul>
+<li>Large moves <span class="math inline">\(\implies\)</span> low acceptance</li>
+<li>Small moves <span class="math inline">\(\implies\)</span> high acceptance but slow mixing</li>
+</ul>
+</section>
+<section id="random-walk-proposal" class="level4">
+<h4 class="anchored" data-anchor-id="random-walk-proposal">Random walk proposal</h4>
+<p>Random walk proposal, e.g.&nbsp;<span class="math inline">\(Q(y|x) = \mathcal N(x_{i-1},\sigma^2)\)</span></p>
+<p><span class="math display">\[
+\alpha = \min\Big (1,\frac{\pi(y)}{\pi(x)}\Big)
+\]</span></p>
+<ul>
+<li><span class="math inline">\(\sigma\)</span> large <span class="math inline">\(\implies\)</span> large steps <span class="math inline">\(\implies\)</span> low acceptance</li>
+<li><span class="math inline">\(\sigma\)</span> small <span class="math inline">\(\implies\)</span> small steps <span class="math inline">\(\implies\)</span> high acceptance but slow mixing</li>
+</ul>
+</section>
+<section id="special-cases" class="level4">
+<h4 class="anchored" data-anchor-id="special-cases">Special cases</h4>
+<ul>
+<li>Metropolis Algorithm (1953): <span class="math inline">\(Q(y|x) = Q(x|y)\)</span></li>
+<li>Independence sampler (Tierney, 1994): <span class="math inline">\(Q(y|x) = Q(y)\)</span>. Suitable if we can find a <span class="math inline">\(Q(y) \simeq \pi(y)\)</span></li>
+<li>Gibbs sampling</li>
+</ul>
+</section>
+</section>
+<section id="independence-sampler" class="level3">
+<h3 class="anchored" data-anchor-id="independence-sampler">Independence sampler</h3>
+<p>In a Metropolis-Hastings independence sampler, the proposal distribution <span class="math inline">\(Q(y|x)\)</span> does not depend on the current state <span class="math inline">\(x\)</span>:</p>
+<p><span class="math display">\[
+Q(y|x) = Q(y)
+\]</span></p>
+<ul>
+<li>This is called “independence” because the proposal is independent of the current state.</li>
+<li>The acceptance probability is: <span class="math display">\[
+\alpha(x,y) = \min\Big (1, \frac{\pi(y)Q(x)}{\pi(x)Q(y)}\Big)
+\]</span></li>
+<li>If we could choose <span class="math inline">\(Q(y)=\pi(y)\)</span> (the target distribution), then every proposal is accepted, because <span class="math inline">\(\alpha(x,y) \simeq 1\)</span>. Of course this is not feasible in reality, so we have to approximate it.</li>
+</ul>
+<section id="example-rao-1973" class="level4 example-block">
+<h4 class="anchored" data-anchor-id="example-rao-1973">Example (Rao, 1973)</h4>
+<p><span class="math display">\[
+(y_1,y_2, y_3, y_4) \sim \mathrm{Multinom}\Big(n,\frac 12 +\frac \theta 4, \frac{1-\theta}4,\frac{1-\theta}4,\frac \theta 4\Big)
+\]</span> <span class="math inline">\(\pi(\theta) = 1\)</span> for <span class="math inline">\(0&lt;\theta&lt;1\)</span> <span class="math display">\[
+L(\theta |y) \propto \Big (\frac 12+\frac\theta4\Big)^{y_1}\Big(\frac{1-\theta}{4}\Big)^{y_2}\Big(\frac{1-\theta}{4}\Big)^{y_3}\Big(\frac{\theta}{4}\Big)^{y_4}
+\]</span> Posterior: <span class="math display">\[
+\pi(\theta |y) \propto L(\theta | y)\pi(\theta)
+\]</span></p>
+<p><strong>Choosing a good proposal <span class="math inline">\(Q(\theta)\)</span></strong></p>
+<ol type="1">
+<li>Compute MLE: <span class="math inline">\(\hat \theta= \arg\max_{\theta}L(\theta|y)\)</span></li>
+<li>Compute observed Fisher information: <span class="math inline">\(H(\hat \theta) = -\frac{\partial^2 \log L}{\partial \theta} \Big\vert_{\theta = \hat \theta}\)</span></li>
+<li>Approximate posterior variance: <span class="math inline">\(\widehat{SE(\hat \theta)}^2=H(\hat \theta)^{-1}\)</span></li>
+</ol>
+<p>A good choice of <span class="math inline">\(Q(\theta)\)</span> might be: <span class="math display">\[
+\theta^*\sim Q(\theta) = \mathcal N\Big(\hat \theta, \widehat{SE(\hat \theta)}^2\Big)
+\]</span></p>
+</section>
+</section>
+<section id="iterative-conditioning-in-mcmc" class="level3">
+<h3 class="anchored" data-anchor-id="iterative-conditioning-in-mcmc">Iterative conditioning in MCMC</h3>
+<p>Apply Metropolis-Hastings randomly or cyclically to components <span class="math inline">\(x_j\)</span> of <span class="math inline">\(\mathbf x\)</span>, conditioning on the remaining components</p>
+<p><span class="math display">\[
+\mathbf x_{-j} = (x_1,x_2, \dots, x_{j-1}, x_{j+1}, \dots , x_p)
+\]</span> For the detailed balance equation, <span class="math inline">\(Q(\mathbf y | \mathbf x)\)</span> is a mixture: the overall proposal distribution is formed by combining several component-wise proposal distributions, each corresponding to updating a different coordinate <span class="math inline">\(j\)</span>.</p>
+<p><strong>Component-wise proposals:</strong></p>
+<p><span class="math display">\[
+Q_j(y_j|x_j,-\mathbf{x_j}), \quad j=1,2,\dots,p
+\]</span></p>
+<p>with acceptance probability:</p>
+<p><span class="math display">\[
+\begin{align}
+\alpha (\mathbf y_j \mid x_j,\mathbf x_{-j})
+&amp;= \min \Big( 1, \frac{\pi (y) Q(x\mid y)}{\pi(x) Q(y\mid x)} \Big ) \\
+&amp;= \min \Big (1, \frac{\pi (y_j \mid \mathbf y_{-j})\pi(\mathbf y_{-j}) Q_j(x_j|y_j,\mathbf y_{-j})}{\pi(x_j|\mathbf x_{-j}) \pi(\mathbf x_{-j}) Q_j (y_j|x_j,\mathbf x_{-j})} \Big)
+\end{align}
+\]</span></p>
+<ul>
+<li><span class="math inline">\(\pi(\mathbf y_{-j})= \pi (\mathbf x_{-j})\)</span> (only the <span class="math inline">\(j\)</span>-th component changes <span class="math inline">\(\implies \mathbf y_{-j} = \mathbf x_{-j}\)</span>)</li>
+<li>Since <span class="math inline">\(\pi(y_j|\mathbf y_{-j}) \propto \pi(\mathbf y)\)</span>, only factors containing <span class="math inline">\(y_j\)</span> needs to be evaluated.<span class="math inline">\(\implies\)</span> it makes high dimensional MCMC more efficient.</li>
+</ul>
+</section>
+<section id="gibbs-sampling" class="level3">
+<h3 class="anchored" data-anchor-id="gibbs-sampling">Gibbs Sampling</h3>
+<p>It’s Iterative conditioning MCMC with:</p>
+<p><span class="math display">\[
+Q_j(y_j|x_j,\mathbf x_{-j}) = \pi (y_j | \mathbf x_{-j})
+\]</span></p>
+<p>It requires that:</p>
+<ol type="1">
+<li>For all components, the conditional distributions are known and easy to sample.</li>
+<li>The joint distribution is compatible with component-wise updates</li>
+</ol>
+<p>Notice also that high correlated component may lead to slow convergence.</p>
+<section id="example-power-plants-3" class="level4 example-block">
+<h4 class="anchored" data-anchor-id="example-power-plants-3">Example (Power Plants)</h4>
+<p><span class="math display">\[\begin{align}
+f(\alpha, \beta, \lambda_1,\dots, \lambda_n | y_1,\dots, y_n) &amp; \propto  f(\alpha,\beta, \pmb \lambda_{1:n}, \pmb y_{1:n}) = \\
+
+&amp; = e^{-\alpha}\beta^{0.1-1} e^{-\beta}\prod_{i=1}^n
+   \frac{\beta^\alpha}{\Gamma(\alpha)} \lambda_i^{\alpha-1} e^{-\beta \lambda_i}   \prod_{i=1}^n \frac{(\lambda_i t_i)^{y_i} e^{-\lambda_i t_i}}{y_i!}
+\end{align}\]</span></p>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><span class="math inline">\(\beta\)</span></li>
+</ul>
+<p><span class="math display">\[\begin{align}
+\pi(\beta | \alpha, \pmb\lambda_{1:n},\pmb y_{1:n}) &amp; = \beta^{-0.9} e^{-\beta} \prod_{i=1}^n \beta^\alpha e^{-\beta \lambda_i} = \\
+
+&amp; = \beta^{(\alpha n - 0.9)} e^{-\beta(1+ \sum_{i=1}^n \lambda_i)}
+\\
+&amp; \sim \Gamma \Big(\alpha n+1,\ 1+ \sum_{i=1}^n \lambda_i\Big)
+\end{align}\]</span></p>
+<ul>
+<li><span class="math inline">\(\lambda_i \quad i=1,2,\dots, n\)</span></li>
+</ul>
+<p><span class="math display">\[\begin{align}
+\pi(\lambda_i | \alpha, \beta, \pmb \lambda_{-i}, \pmb y_{1:n}) &amp; \propto
+\lambda_i^{\alpha-1+y_i}e^{-(\beta + t_i)\lambda_i} \\
+&amp; \sim \Gamma(\alpha+y_i, \beta+t_i)
+\end{align}\]</span></p>
+<ul>
+<li><span class="math inline">\(\alpha\)</span></li>
+</ul>
+<p><span class="math display">\[
+\pi (\alpha | \beta, \pmb \lambda_{1:n} , \pmb y_{1:n}) \propto e^{(-1+n\ln (\beta)+\sum_{i=1}^n\ln(\lambda_i))\alpha}\ \Gamma(\alpha)^{-n}
+\]</span> We can’t simulate from this. Instead, we can use Metropolis random walk proposal, e.g.</p>
+<p><span class="math display">\[
+\alpha ' = \alpha, \beta, \pmb \lambda_{1:n}, \pmb y_{1:n} \sim \mathcal N \begin{pmatrix} \alpha, \sigma_\alpha ^2\end{pmatrix}
+\]</span> Since the proposal is symmetric, meaning <span class="math inline">\(Q(\alpha'|\alpha)= Q(\alpha|\alpha')\)</span> because it’s a Normal distribution centered at the current state, the proposal densities cancel out. Te acceptance probability is:</p>
+<p><span class="math display">\[
+\alpha_{acc}(\alpha, \alpha') = \min \begin{pmatrix}1, \frac{\pi(\alpha'|\beta, \pmb \lambda_{1:n}, \pmb y_{1:n})}{\pi(\alpha|\beta, \pmb \lambda_{1:n}, \pmb y_{1:n})}\end{pmatrix}
+\]</span></p>
+<p>Using the conditional posterior derived for <span class="math inline">\(\alpha\)</span>:<span class="math display">\[\pi (\alpha | \dots) \propto \exp\left[ \left(-1 + n\ln\beta + \sum_{i=1}^n \ln\lambda_i \right)\alpha \right] \Gamma(\alpha)^{-n}\]</span></p>
+<p>The ratio <span class="math inline">\(\frac{\pi(\alpha')}{\pi(\alpha)}\)</span> becomes:</p>
+<p><span class="math display">\[\frac{\exp\left[ \left(-1 + n\ln\beta + \sum \ln\lambda_i \right)\alpha' \right] \Gamma(\alpha')^{-n}}{\exp\left[ \left(-1 + n\ln\beta + \sum \ln\lambda_i \right)\alpha \right] \Gamma(\alpha)^{-n}}\]</span> <strong>Log-Acceptance Rate</strong></p>
+<p>In practice, we always compute this on the log scale to maintain numerical stability (especially with the <span class="math inline">\(\Gamma\)</span> functions and the large products):<span class="math display">\[\log R = \left(-1 + n\ln\beta + \sum_{i=1}^n \ln\lambda_i \right)(\alpha' - \alpha) + n \left[ \ln\Gamma(\alpha) - \ln\Gamma(\alpha') \right]\]</span></p>
+</section>
+<section id="example-simple-linear-regression" class="level4 example-block">
+<h4 class="anchored" data-anchor-id="example-simple-linear-regression">Example (Simple Linear Regression)</h4>
+<p><span class="math display">\[
+y_i | \beta_1, \beta_2, \tau \stackrel{iid}{\sim} \mathcal N(\beta_1 + \beta_2 x_i, \tau^{-1})
+\]</span></p>
+<p>where <span class="math inline">\(\tau\)</span> is the precision (inverse of variance).</p>
+<p><strong>Hierarchical priors:</strong></p>
+<ul>
+<li><span class="math inline">\(\beta_1 \sim \mathcal N(0, \frac{1}{\tau_1})\)</span></li>
+<li><span class="math inline">\(\beta_2 \sim \mathcal N(0, \frac{1}{\tau_2})\)</span></li>
+<li><span class="math inline">\(\tau \sim \Gamma(a,b)\)</span></li>
+</ul>
+<p>Prior: <span class="math display">\[
+\pi(\beta_1, \beta_2, \tau) = \pi(\beta_1) \pi(\beta_2) \pi(\tau) = \frac{\sqrt{\tau_1}}{\sqrt{2\pi}} \exp\left(-\frac{\tau_1}{2}\beta_1^2\right) \cdot \frac{\sqrt{\tau_2}}{\sqrt{2\pi}} \exp\left(-\frac{\tau_2}{2}\beta_2^2\right) \cdot \frac{b^a}{\Gamma(a)} \tau^{a-1} e^{-b\tau}
+\]</span></p>
+<p>Likelihood: <span class="math display">\[
+L(\beta_1, \beta_2, \tau | y) = \prod_{i=1}^n \frac{\sqrt{\tau}}{\sqrt{2\pi}} \exp\left(-\frac{\tau}{2}(y_i - \beta_1 - \beta_2 x_i)^2\right)
+\]</span></p>
+<p>A prior distribution is conjugate to a likelihood function if the resulting posterior distribution is in the same family as the prior distribution. In this case, the likelihood is Gaussian and the priors for <span class="math inline">\(\beta_1\)</span> and <span class="math inline">\(\beta_2\)</span> are also Gaussian, which means that the posterior distributions for <span class="math inline">\(\beta_1\)</span> and <span class="math inline">\(\beta_2\)</span> will also be Gaussian. However, the prior for <span class="math inline">\(\tau\)</span> is a Gamma distribution, and the likelihood does not lead to a Gamma posterior for <span class="math inline">\(\tau\)</span>, so we cannot use Gibbs sampling for <span class="math inline">\(\tau\)</span>.</p>
+<p>Posterior: <span class="math display">\[
+\pi(\beta_1, \beta_2, \tau | y) \propto L(\beta_1, \beta_2, \tau | y) \cdot \pi(\beta_1, \beta_2, \tau)=
+\]</span> <span class="math display">\[
+= \left( \prod_{i=1}^n \frac{\sqrt{\tau}}{\sqrt{2\pi}} \exp\left(-\frac{\tau}{2}(y_i - \beta_1 - \beta_2 x_i)^2\right) \right) \cdot \left( \frac{\sqrt{\tau_1}}{\sqrt{2\pi}} \exp\left(-\frac{\tau_1}{2}\beta_1^2\right) \cdot \frac{\sqrt{\tau_2}}{\sqrt{2\pi}} \exp\left(-\frac{\tau_2}{2}\beta_2^2\right) \cdot \frac{b^a}{\Gamma(a)} \tau^{a-1} e^{-b\tau} \right)
+\]</span> <span class="math display">\[
+\propto \tau^{\frac{n}{2} + a - 1} \exp\left(-\frac{\tau}{2} \sum_{i=1}^n (y_i - \beta_1 - \beta_2 x_i)^2 - b\tau\right) \cdot \exp\left(-\frac{\tau_1}{2}\beta_1^2\right) \cdot \exp\left(-\frac{\tau_2}{2}\beta_2^2\right)
+\]</span></p>
+<p>Full condtionals:</p>
+<ul>
+<li><span class="math inline">\(\beta_1\)</span>: <span class="math display">\[
+\pi(\beta_1 | \beta_2, \tau, y) \propto \exp\left(-\frac{\tau}{2} \sum_{i=1}^n (y_i - \beta_1 - \beta_2 x_i)^2\right) \cdot \exp\left(-\frac{\tau_1}{2}\beta_1^2\right)
+\]</span> <span class="math display">\[
+\sim \mathcal N\left(\frac{\tau \sum_{i=1}^n (y_i - \beta_2 x_i) }{\tau n + \tau_1}, \frac{1}{\tau n + \tau_1}\right)
+\]</span></li>
+<li><span class="math inline">\(\beta_2\)</span>: <span class="math display">\[
+\pi(\beta_2 | \beta_1, \tau, y) \propto \exp\left(-\frac{\tau}{2} \sum_{i=1}^n (y_i - \beta_1 - \beta_2 x_i)^2\right) \cdot \exp\left(-\frac{\tau_2}{2}\beta_2^2\right)
+\]</span> <span class="math display">\[
+\sim \mathcal N\left(\frac{\tau \sum_{i=1}^n x_i (y_i - \beta_1) }{\tau \sum_{i=1}^n x_i^2 + \tau_2}, \frac{1}{\tau \sum_{i=1}^n x_i^2 + \tau_2}\right)
+\]</span></li>
+<li><span class="math inline">\(\tau\)</span>: <span class="math display">\[
+\pi(\tau | \beta_1, \beta_2, y) \propto \tau^{\frac{n}{2} + a - 1} \exp\left(-\frac{\tau}{2} \sum_{i=1}^n (y_i - \beta_1 - \beta_2 x_i)^2 - b\tau\right)
+\]</span> <span class="math display">\[
+\propto \Gamma\left(\frac{n}{2} + a, \frac{1}{2} \sum_{i=1}^n (y_i - \beta_1 - \beta_2 x_i)^2 + b\right)
+\]</span></li>
+</ul>
+<p>As <span class="math inline">\(a,b \to 0\)</span>, <span class="math display">\[
+\pi (\tau) = \frac{b^a}{\Gamma(a)} \tau^{a-1} e^{-b\tau} \xrightarrow[a,b \to 0]{} \frac{1}{\tau}
+\]</span></p>
+</section>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
