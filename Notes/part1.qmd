@@ -1,0 +1,150 @@
+---
+title: "Stochastic simulation"
+author: "Alessandro Cavalieri"
+date: "2026-02-20"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float:
+      collapsed: false
+---
+
+<style>
+:root {
+  --example-color: #2e7d32; /* Define your variable here (e.g., a forest green) */
+}
+
+.example-block {
+  color: var(--example-color);
+  border-left: 4px solid var(--example-color);
+  padding-left: 15px;
+  margin: 20px 0;
+  font-style: italic;
+}
+</style>
+
+
+```{python}
+#| echo: false
+import numpy as np
+import matplotlib.pyplot as plt
+```
+
+## Rejection sampling
+
+Rejection sampling is a method for generating random samples from a target distribution $p(x)$ by using a proposal distribution $q(x)$ that is easy to sample from. The algorithm works as follows:
+
+1. Choose a proposal distribution $q(x)$ and a constant $M$ such that $M q(x) \geq p(x)$ for all $x$.
+2. Repeat the following steps until you have the desired number of samples:
+   a. Sample $x'$ from the proposal distribution $q(x)$.
+   b. Generate a uniform random number $u$ from the interval [0, 1].
+   c. If $u < \frac{p(x')}{M q(x')}$, accept $x'$ as a sample from $p(x)$; otherwise, reject it and repeat the process.
+The efficiency of rejection sampling depends on how well the proposal distribution $q(x)$ approximates the target distribution $p(x)$. If $M$ is large, the acceptance rate will be low, leading to many rejected samples. Therefore, it is crucial to choose a proposal distribution that closely matches the shape of the target distribution to improve efficiency.
+
+::: {.example-block}
+### Example
+Suppose you want to sample from
+$$
+p(x)= \begin{cases}
+  2e^{-x}(1-e^{-x}) & \text{if } x \geq 0 \\
+  0 & \text{otherwise}
+\end{cases}
+$$
+
+having $q(x) = e^{-x}$ for $x \geq 0$ as proposal distribution.
+
+```{python}
+#| echo: false
+def p_function(x):
+    x = np.asarray(x)
+    return np.where(x >= 0, 2 * np.exp(-x) * (1 - np.exp(-x)), 0.0)
+
+def q_function(x):
+    x = np.asarray(x)
+    return np.where(x >= 0, np.exp(-x), 0.0)
+
+x = np.linspace(0, 10, 1000)
+yp = p_function(x)
+yq = q_function(x)
+
+# Plot
+plt.plot(x, yp, linewidth=2, color='blue', label='Target Distribution')
+plt.plot(x, yq, linewidth=2, color='red', label='Proposal Distribution')
+plt.xlabel('x')
+plt.ylabel('f(x)')
+plt.legend()
+plt.show()
+```
+
+We have to choose a constant $M$ such that $Mq(x) \geq p(x)$ for all $x$:
+$$
+M = \max_{x \geq 0} \frac{p(x)}{q(x)} = \max_{x \geq 0} \frac{2e^{-x}(1-e^{-x})}{e^{-x}} = \max_{x \geq 0} 2(1-e^{-x}) = 2
+$$
+
+```{python}
+#| echo: false
+def Mq_function(x):
+    x = np.asarray(x)
+    return np.where(x >= 0, 2 * np.exp(-x), 0.0)
+
+yMq = Mq_function(x)
+plt.plot(x, yp, linewidth=2, color='blue', label='Target Distribution')
+plt.plot(x, yMq, linewidth=2, color='red', label='Mq(x)')
+plt.xlabel('x')
+plt.ylabel('f(x)')
+plt.legend()
+plt.show()
+```
+
+We can now try to run point 2b - 2c until we reach 10000 accepted samples:
+
+```{python}
+n_samples = 10000
+samples = []              # vector to store samples
+it = 0                    # iterations counter
+while len(samples) < n_samples:                       # point 2b - 2c loop
+    x_prime = np.random.exponential(scale=1.0)            # sample x'
+    u = np.random.uniform(0, 1)                           # sample u in [0, 1]
+    if u < p_function(x_prime) / (Mq_function(x_prime)):  # accept sample
+        samples.append(x_prime)
+    it+=1
+
+
+```
+
+```{python}
+#| echo: false
+
+print(f"Number of iterations: {it}")
+print(f"Acceptance rate: {len(samples)/it:.4f}")
+
+# Plot
+plt.figure(figsize=(8, 5))
+
+# Histogram (better bins + transparency)
+plt.hist(samples, bins=80, density=True, alpha=0.5, label='Samples')
+
+# Target distribution
+plt.plot(x, yp, linewidth=2.5, label='Target $p(x)$')
+
+# Optional: proposal (dashed)
+plt.plot(x, yMq, linestyle='--', linewidth=2, label='Proposal $q(x)$')
+
+# Labels & style
+plt.xlabel('x')
+plt.ylabel('Density')
+plt.title('Rejection Sampling')
+plt.legend()
+plt.grid(alpha=0.3)
+
+# Focus on relevant region
+plt.xlim(0, 6)
+
+plt.tight_layout()
+plt.show()
+```
+
+We can see that the acceptance rate is close 
+
+:::
