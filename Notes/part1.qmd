@@ -2,12 +2,12 @@
 title: "Stochastic simulation"
 author: "Alessandro Cavalieri"
 date: "2026-02-20"
-output: 
-  html_document:
+format: 
+  html:
     toc: true
-    toc_depth: 3
-    toc_float:
-      collapsed: false
+    toc-depth: 3
+    toc-expand: false
+    code-fold: true
 ---
 
 <style>
@@ -40,6 +40,13 @@ Rejection sampling is a method for generating random samples from a target distr
    a. Sample $x'$ from the proposal distribution $q(x)$.
    b. Generate a uniform random number $u$ from the interval [0, 1].
    c. If $u < \frac{p(x')}{M q(x')}$, accept $x'$ as a sample from $p(x)$; otherwise, reject it and repeat the process.
+
+
+**Theoretical Acceptance rate**
+$$
+\mathbb E\Big[U<\frac{p(X)}{M q(X)}\Big | X\Big] = \int \frac{p(x)}{M q(x)} q(x) dx = \frac{1}{M}\overbrace{\int p(x) dx}^{=1} = \frac 1M
+$$
+
 The efficiency of rejection sampling depends on how well the proposal distribution $q(x)$ approximates the target distribution $p(x)$. If $M$ is large, the acceptance rate will be low, leading to many rejected samples. Therefore, it is crucial to choose a proposal distribution that closely matches the shape of the target distribution to improve efficiency.
 
 ::: {.example-block}
@@ -55,7 +62,6 @@ $$
 having $q(x) = e^{-x}$ for $x \geq 0$ as proposal distribution.
 
 ```{python}
-#| echo: false
 def p_function(x):
     x = np.asarray(x)
     return np.where(x >= 0, 2 * np.exp(-x) * (1 - np.exp(-x)), 0.0)
@@ -83,10 +89,11 @@ M = \max_{x \geq 0} \frac{p(x)}{q(x)} = \max_{x \geq 0} \frac{2e^{-x}(1-e^{-x})}
 $$
 
 ```{python}
-#| echo: false
+M=2
+
 def Mq_function(x):
     x = np.asarray(x)
-    return np.where(x >= 0, 2 * np.exp(-x), 0.0)
+    return np.where(x >= 0, M* np.exp(-x), 0.0)
 
 yMq = Mq_function(x)
 plt.plot(x, yp, linewidth=2, color='blue', label='Target Distribution')
@@ -97,54 +104,137 @@ plt.legend()
 plt.show()
 ```
 
-We can now try to run point 2b - 2c until we reach 10000 accepted samples:
+We can now try to run point 2b - 2c until we reach 1000 accepted samples:
 
 ```{python}
-n_samples = 10000
-samples = []              # vector to store samples
+n_samples = 1000
+accepted_x, accepted_y = [], []
+rejected_x, rejected_y = [], []
 it = 0                    # iterations counter
-while len(samples) < n_samples:                       # point 2b - 2c loop
-    x_prime = np.random.exponential(scale=1.0)            # sample x'
-    u = np.random.uniform(0, 1)                           # sample u in [0, 1]
-    if u < p_function(x_prime) / (Mq_function(x_prime)):  # accept sample
-        samples.append(x_prime)
-    it+=1
-
-
+while len(accepted_y) < n_samples:
+    x_prime = np.random.exponential(scale=1.0)
+    u = np.random.uniform(0, 1)
+    
+    # This is the actual height of the point in the proposal distribution
+    y_val = u * Mq_function(x_prime)
+    
+    # Check against the target p(x)
+    if u < p_function(x_prime) / Mq_function(x_prime):
+        # Accepted
+        accepted_x.append(x_prime)
+        accepted_y.append(y_val)
+    else:
+        # Rejected
+        rejected_x.append(x_prime)
+        rejected_y.append(y_val)
+        
+    it += 1
 ```
 
 ```{python}
-#| echo: false
+# 1. Plot the "Rejected" points first (so they are in the background)
+plt.scatter(rejected_x, rejected_y, color='red', s=5, alpha=0.2, label='Rejected')
 
-print(f"Number of iterations: {it}")
-print(f"Acceptance rate: {len(samples)/it:.4f}")
+# 2. Plot the "Accepted" points
+plt.scatter(accepted_x, accepted_y, color='blue', s=5, alpha=0.5, label='Accepted')
 
-# Plot
-plt.figure(figsize=(8, 5))
+# 3. Target distribution p(x)
+plt.plot(x, yp, color='blue', linewidth=2.5, label='Target $p(x)$')
 
-# Histogram (better bins + transparency)
-plt.hist(samples, bins=80, density=True, alpha=0.5, label='Samples')
+# 4. Proposal distribution M*q(x)
+# This is the "envelope" that the points should fall under
+plt.plot(x, yMq, color='red', linestyle='--', linewidth=2, label='Envelope $Mq(x)$')
 
-# Target distribution
-plt.plot(x, yp, linewidth=2.5, label='Target $p(x)$')
-
-# Optional: proposal (dashed)
-plt.plot(x, yMq, linestyle='--', linewidth=2, label='Proposal $q(x)$')
-
-# Labels & style
+# Formatting
 plt.xlabel('x')
-plt.ylabel('Density')
-plt.title('Rejection Sampling')
-plt.legend()
-plt.grid(alpha=0.3)
-
-# Focus on relevant region
+plt.ylabel('y')
+plt.title(f'Rejection Sampling (Rate: {len(accepted_x)/it:.4f})')
+plt.legend(loc='upper right')
 plt.xlim(0, 6)
-
+plt.grid(alpha=0.2)
 plt.tight_layout()
 plt.show()
 ```
 
-We can see that the acceptance rate is close 
+We can see that the empirical acceptance rate is close to the theoretical one, given by
+$$
+\text{Acceptance Rate} = \frac{1}{M} = \frac{1}{2} = 0.5
+$$
+
+## Interactive rejection sampling
+
+```{ojs}
+//| panel: input
+viewof lambda = Inputs.range([0.1, 3], {step: 0.1, label: "λ (Proposal)", value: 1})
+viewof M = Inputs.range([1, 10], {step: 0.1, label: "M (Scaling)", value: 3})
+viewof run = Inputs.button("Generate 500 Samples")
+```
+
+```{ojs}
+// 1. The Simulation Logic
+// This runs whenever the 'run' button is clicked
+results = {
+  run; // Reference 'run' to trigger recalculation
+  const n = 500;
+  const accepted = [];
+  const rejected = [];
+  let attempts = 0;
+
+  while (accepted.length < n && attempts < 5000) {
+    attempts++;
+    // Sample x from exponential proposal: x = -ln(1-u)/lambda
+    const x_prime = -Math.log(1 - Math.random()) / lambda;
+    const u = Math.random();
+    
+    const p_val = x_prime >= 0 ? 2 * Math.exp(-x_prime) * (1 - Math.exp(-x_prime)) : 0;
+    const mq_val = M * (lambda * Math.exp(-lambda * x_prime));
+    
+    const point = {x: x_prime, y: u * mq_val};
+    
+    if (u < p_val / mq_val) {
+      accepted.push({...point, status: "Accepted"});
+    } else {
+      rejected.push({...point, status: "Rejected"});
+    }
+  }
+  return {accepted, rejected, rate: accepted.length / attempts};
+}
+```
+```{ojs}
+// 2. Display Statistics
+md`**Acceptance Rate:** ${(results.rate * 100).toFixed(2)}% | **Total Iterations:** ${results.accepted.length + results.rejected.length}`
+```
+```{ojs}
+// 3. The Visualization
+Plot.plot({
+  width: 700,
+  height: 400,
+  grid: true,
+  y: {domain: [0, 2], label: "Density"},
+  x: {domain: [0, 6]},
+  color: {
+    domain: ["Target p(x)", "Envelope M*q(x)", "Accepted", "Rejected"],
+    range: ["blue", "green", "blue", "#ff000044"]
+  },
+  marks: [
+    // Static Lines
+    Plot.line(Array.from({length: 300}, (_, i) => i * 0.02), {
+      x: d => d, 
+      y: d => 2 * Math.exp(-d) * (1 - Math.exp(-d)), 
+      stroke: () => "Target p(x)", strokeWidth: 2
+    }),
+    Plot.line(Array.from({length: 300}, (_, i) => i * 0.02), {
+      x: d => d, 
+      y: d => M * (lambda * Math.exp(-lambda * d)), 
+      stroke: () => "Envelope M*q(x)", strokeWidth: 2, stroke: "#ff0000"
+    }),
+    // Sampled Points
+    Plot.dot(results.accepted, {x: "x", y: "y", fill: "blue", r: 2, title: "Accepted"}),
+    Plot.dot(results.rejected, {x: "x", y: "y", fill: "#ff0000", r: 1.5, fillOpacity: 0.2, title: "Rejected"}),
+    Plot.ruleY([0])
+  ]
+})
+```
+
 
 :::
