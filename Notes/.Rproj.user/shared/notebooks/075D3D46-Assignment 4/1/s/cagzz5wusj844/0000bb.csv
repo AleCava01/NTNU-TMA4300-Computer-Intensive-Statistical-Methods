@@ -1,2 +1,0 @@
-"0",""
-"0","hist(beta_hat[,3], main=expression(hat(beta)[2]), xlab=""Estimate"", col=""lightpink"", breaks=30)"

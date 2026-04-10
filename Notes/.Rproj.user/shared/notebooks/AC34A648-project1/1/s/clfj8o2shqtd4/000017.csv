@@ -1,4 +1,0 @@
-"0",""
-"0","# Plot associated variograms"
-"0","plot(L, var*(1-exponential_func(1,L,nu[1])), type=""l"", col=""blue"","
-"0","     ylab=""gamma_r(tau)"", xlab=""tau"", main=""Associated Variograms"")"

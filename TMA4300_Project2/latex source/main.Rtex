@@ -1,0 +1,1547 @@
+\documentclass[a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{stmaryrd}
+\usepackage{algorithm}
+\usepackage{float}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{dsfont}
+\usepackage{algpseudocode}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{siunitx}
+\usepackage{booktabs}
+\usepackage[margin=2.5cm]{geometry}
+
+\usepackage{listings}
+\lstset{
+  language=bash,
+  basicstyle=\ttfamily
+}
+
+\newtheorem{definition}{Definition}
+
+<<setup, include=FALSE>>=
+
+knitr::opts_chunk$set(
+  tidy = TRUE,               # tidy R code
+  size = "small",            # smaller font
+  highlight = TRUE,
+  comment = NA,              # remove comment prefix in output
+  out.width = "\\textwidth"  # ensure plots fit page
+)
+@
+
+\newcommand{\email}[1]{ (\href{mailto:#1}{#1})}
+
+
+
+\begin{document}
+
+\setcounter{secnumdepth}{0}
+
+\title{Project 2, TMA4300}
+\author{\email{mihan@stud.ntnu.no},  \email{alessatc@stud.ntnu.no}}
+\maketitle
+
+\setcounter{tocdepth}{2}
+\tableofcontents
+\newpage
+\section{Problem 1}
+\subsection{Point a)}
+
+Supposing that the joint density of $U, Z$ up to a normalizing constant is:
+
+\[
+f^*_{U,Z}(u,z) = \begin{cases} 
+1 & \text{for } 0 < u < e^{-z^2/2} \\
+0 & \text{elsewhere}
+\end{cases} = \mathds{1}_{0 < u < e^{-z^2/2}}
+\]
+
+\subsubsection{Full conditionals derivation}
+
+\begin{enumerate}
+    \item \textbf{We start deriving the marginals of $U$ and $V$}.
+    
+\textbf{Marginal of $U$}:
+
+\begin{equation}\label{marginal_of_U}
+f_U(u) =  \int_{-\infty}^{\infty}f^*_{U,Z}(u,z) \ \mathrm{d}z = \int_{-\infty}^{\infty} \mathds{1}_{0 < u < e^{-z^2/2}} \ \mathrm{d}z
+\end{equation}
+
+We can see that the joint density is $\neq 0 \iff u<e^{-z^2/2}$, thus:
+\begin{equation}\label{alternative_extremes_start}
+    \ln (u)<-\frac{z^2}{2}
+\end{equation}
+\begin{equation}
+    z^2 < -2\ln(u)
+\end{equation}
+\begin{equation}\label{alternative_extremes_end}
+    -\sqrt{-2\ln(u)}< z < \sqrt{-2\ln(u)}
+\end{equation}
+
+The interval is non empty if and only if
+$$
+    -2\ln(u) >0 \iff \ln(u)<0\iff 0<u<1
+$$
+
+So the integral \ref{marginal_of_U} becomes:
+$$
+    f_U(u)=\int_{-\sqrt{-2\ln(u)}}^{\sqrt{-2\ln(u)}}1\ \mathrm dz\   \mathds{1}_{(0,1)}(u) = 2\sqrt{-2\ln(u)}\   \mathds{1}_{(0,1)}(u)
+$$
+
+
+\textbf{Marginal of $Z$}:
+
+\begin{equation}\label{Z_is_normally_distributed}
+    f_Z(z) = \int_{-\infty}^\infty f^*_{U,Z}(u,z) \ \mathrm{d}u = \int_{-\infty}^{\infty} \mathds{1}_{0 < u < e^{-z^2/2}}(u) \ \mathrm{d}u = \int_0^{e^{-z^2/2}}1\ \mathrm d u= e^{-z^2/2},
+\end{equation}
+
+this is proportional to a normal standard distribution.
+
+\item \textbf{Find the conditionals.}
+
+\textbf{Distribution of U conditioned on Z}
+
+\begin{align*}
+    f_{U|Z} (u|z) & = \frac{f^*_{U,Z}(u,z)}{f_Z(z)} = \frac{1}{e^{-z^2/2}}\mathds{1}_{0 < u < e^{-z^2/2}}(u) = e^{z^2/2}\mathds{1}_{0 < u < e^{-z^2/2}}(u) \\ 
+    & \sim \mathrm{Uniform} ( 0,e^{-z^2/2})
+\end{align*}
+
+\textbf{Distribution of Z conditioned on U}
+
+As seen in equations \ref{alternative_extremes_start} - \ref{alternative_extremes_end}, for fixed $u\in (0,1)$, we can write:
+$$
+    f^*_{U,Z}(u,z) = \mathds{1}_{0 < u < e^{-z^2/2}} = \mathds{1}_{(-\sqrt{-2\ln(u)},\sqrt{-2\ln(u)})}(z).
+$$
+
+Thus,
+\begin{align*}
+    f_{Z|U}(z|u)= \frac{f^*_{U,Z}(u,z)}{f_U(u)} & =\frac1{2\sqrt{-2\ln(u)}}\mathds{1}_{(-\sqrt{-2\ln(u)},\sqrt{-2\ln(u)})}(z) \\
+    & \sim  \mathrm{Uniform}\Big ( -\sqrt{-2\ln(u)},\sqrt{-2\ln(u)}\Big).
+\end{align*}
+\end{enumerate}
+
+\subsubsection{Gibbs Sampling implementation}
+
+We now have the full conditional distributions:
+\begin{itemize}
+    \item $Q_U(U | Z) = \mathrm{Uniform} ( 0,e^{-Z^2/2})$
+    \item $Q_Z(Z | U) = \mathrm{Uniform}\Big ( -\sqrt{-2\ln(U)},\sqrt{-2\ln(U)}\Big)$
+\end{itemize}
+
+Since these conditionals are known and easy to sample from, we can implement Gibbs sampling directly and the acceptance probability $\alpha = 1$.
+
+The algorithm simply alternates:
+
+\begin{enumerate}
+    \item Sample $U_t \sim f_{U|Z}(U | Z_{t-1})$.
+    \item Sample $Z_t \sim f_{Z|U}(Z | U_t)$.
+\end{enumerate}
+
+This produces a Markov chain with stationary distribution equal to the joint $f_{U,Z}$.
+
+<<gibbs-setup, echo=FALSE>>=
+# Set global options for the chunks
+library(knitr)
+opts_chunk$set(concordance=TRUE, warning=FALSE, message=FALSE, tidy=TRUE)
+@
+
+<<gibbs_plot, echo=TRUE, fig.pos="H", out.width="70%", fig.align="center", fig.height=5, fig.width=6, fig.cap="Gibbs samples from the joint distribution.">>=
+
+set.seed(67)
+
+gibbs_sampler <- function(n_samples) {
+  U <- numeric(n_samples)
+  Z <- numeric(n_samples)
+  
+  # initial values
+  U[1] <- 0.5
+  Z[1] <- 0.0
+  
+  for (t in 2:(n_samples)) {
+    # sample U | Z
+    z_prev <- Z[t-1]
+    U[t] <- runif(1, min = 0, max = exp(-z_prev^2/2))
+    
+    # sample Z | U
+    u_curr <- U[t]
+    Z[t] <- runif(1, min = -sqrt(-2*log(u_curr)), max = sqrt(-2*log(u_curr)))
+  }
+  
+  list(U = U, Z = Z)
+}
+samples <- gibbs_sampler(n_samples = 10000)
+
+plot(samples$Z, samples$U, pch = 16,
+     cex = 0.4,
+     col = rgb(0.1, 0.4, 0.8, 0.3),
+     xlab = "Z",
+     ylab = "U",
+     las = 1) 
+grid(col = "gray80")
+box()
+
+@
+
+\subsection{Point b)}
+As seen in \ref{Z_is_normally_distributed}, Z distribution is proportional to a normal distribution, so that's what we should expect when running the Gibbs-sampler discarding $U$ samples.
+
+<<gibbs_plot_b, echo=TRUE, fig.pos="H", out.width="60%", fig.align="center", fig.height=5, fig.width=6, fig.cap="Gibbs Z samples, compared to the normal standard distribution.">>=
+Z_samples <- samples$Z # Discard U
+
+hist(Z_samples, breaks = 50, probability = TRUE,
+     xlab = "Z", col = rgb(0.1, 0.4, 0.8, 0.3), border = "white")
+curve(dnorm(x, 0, 1), add = TRUE, col = "red", lwd = 2)
+grid()
+@
+
+
+\subsection{Point c)}
+\subsubsection{Proof that $Z_{n-1}, Z_n$ are uncorrelated}
+At stationarity, the Gibbs chain satisfies:
+\begin{align}
+    Z_n|U_n &\sim \mathrm{Uniform}\Big ( -\sqrt{-2\ln(U)},\sqrt{-2\ln(U)}\Big)\\
+    U_n|Z_{n-1} &\sim \mathrm{Uniform} ( 0,e^{-Z^2/2})\label{total_conditional_distributions_2}
+\end{align}
+
+
+Law of total covariance:
+$$
+    Cov(X,Y) = \mathbb E[Cov(X,Y|Z)] + Cov(\mathbb E[X|Z], \mathbb E[Y|Z])
+$$
+Applying this to $Z_{n-1},Z_n$, conditioning of $U_n$:
+$$
+    Cov(Z_{n-1},Z_n) = \mathbb E[Cov(Z_{n-1},Z_n|U_n)] + Cov(\mathbb E [Z_{n-1}|U_n], \mathbb E[Z_n|U_n])
+$$
+
+We can now notice that:
+\begin{itemize}
+    \item $Cov(Z_{n-1},Z_n|U_n)=0$ since, given $U_n$, $Z_{n}$ does not depend on $Z_{n-1}$
+    \item $\mathbb E[Z_n|U_n] = 0$ because $Z_n|U_n$ is distributed as a 0 centered uniform variable. Thus, since $Cov(X, c) = \mathbb{E}[(X - \mathbb{E}[X])(c - \mathbb{E}[c])]$, if $c=0\implies Cov(\mathbb E [Z_{n-1}|U_n], 0)=0$.
+\end{itemize}
+Thus,
+$$
+     Cov(Z_{n-1},Z_n)  =0
+$$
+and we can state that $Z_{n-1},Z_n$ are uncorrelated.
+
+\subsubsection{Proof that $Z_{n-1}^2, Z_n^2$ are correlated}
+We start computing the covariance:
+$$
+    Cov(Z_{n-1}^2, Z_n^2) =\mathbb E[Z_{n-1}^2 Z_n^2]- \mathbb E[Z_{n-1}^2]\mathbb E[Z_n^2]
+$$
+
+Using the law of total expectation,
+$$
+    \mathbb E[Z_{n-1}^2Z_{n}^2] = \mathbb E[Z_{n-1}^2\mathbb E[Z_n^2|U_n]]
+$$
+Since we have the conditional distribution $Z_n|U_n \sim \mathrm{Uniform}\Big ( -\sqrt{-2\ln(U)},\sqrt{-2\ln(U)}\Big)$,
+We can compute
+\begin{align*}
+\mathbb E[Z_n^2|U_n = u] &= \int_{-\sqrt{-2\ln(u)}}^{\sqrt{-2\ln(u)}} z^2 \frac{1}{2\sqrt{-2\ln(u)}} \ \mathrm dz= \\
+& = \frac{1}{2\sqrt{-2\ln(u)}}  \int_{-\sqrt{-2\ln(u)}}^{\sqrt{-2\ln(u)}} z^2 \ \mathrm dz = \\
+& = \frac{1}{\sqrt{-2\ln(u)}}  \int_{0}^{\sqrt{-2\ln(u)}} z^2 \ \mathrm dz = \frac {-2\ln(u)}3 
+\end{align*}
+So we have:
+$$
+    \mathbb E[Z_{n-1}^2Z_{n}^2] = \mathbb E\Big [Z_{n-1}^2 \frac {-2\ln(U_n)}3\Big ]
+$$
+Conditioning on $Z_{n-1}$,
+$$
+    \mathbb E\Big [Z_{n-1} ^ 2 \mathbb E\Big [\frac{-2\ln(U_n)}{3} \Big| Z_{n-1} \Big]   \Big]
+$$
+Using the known distribution \ref{total_conditional_distributions_2},
+\begin{align*}
+    E\Big [\frac{-2\ln(U_n)}{3} \Big| Z_{n-1} =z\Big] &= \int_{0}^{e^{-z^2/2}} -\frac{2}{3}\ln(u) \frac 1{e^{-z^2/2}} \ \mathrm du \\
+    & =-\frac{2}{3}\frac 1{e^{-z^2/2}}\int_{0}^{e^{-z^2/2}} \ln(u)  \ \mathrm du = \\
+    & =  -\frac{2}{3}\frac 1{e^{-z^2/2}}\Big[u\ln u-u\Big]_{0}^{e^{-z^2/2}}
+\end{align*}
+Applying L'Hôpital's rule, $\lim_{u\to 0} u\ln u-u = 0$. Thus,
+$$
+    E\Big [\frac{-2\ln(U_n)}{3} \Big| Z_{n-1} =z\Big] = -\frac{2}{3}[ \ln (e^{-z^2/2}) -1] = -\frac{2(-\frac{z^2}{2}-1 )}{3} = \frac {z^2+2}{3}
+$$
+Thus,
+$$
+    \mathbb E\Big [Z_{n-1} ^ 2 \frac {Z_{n-1}^2+2}{3}   \Big] = \frac{\mathbb E[Z_{n-1}^4]+2\mathbb E[Z_{n-1}^2]}3
+$$
+
+At stationarity, the marginal distribution of the samples $Z_n$ is the target distribution itself. Since our target density is the standard Gaussian kernel $e^{-z^2/2}$, the stationary distribution is $Z \sim \mathcal{N}(0, 1)$.To evaluate the final expression, we recall the moments of a standard normal random variable. For $Z \sim \mathcal{N}(0, 1)$, the odd moments are zero by symmetry, and the even moments are given by $(2k-1)!!$
+\begin{itemize}
+    \item $\mathbb{E}[Z^2] = 1$
+    \item $\mathbb{E}[Z^4] = 3$ 
+\end{itemize}
+Substituting these known moments into our previous result for the joint expectation:
+$$
+\mathbb{E}[Z_{n-1}^2 Z_n^2] = \frac{\mathbb{E}[Z_{n-1}^4] + 2\mathbb{E}[Z_{n-1}^2]}{3} = \frac{3 + 2(1)}{3} = \frac{5}{3}
+$$
+We can now complete the calculation for the covariance of the squared terms. 
+Since $\mathbb{E}[Z_n^2] = \mathbb{E}[Z_{n-1}^2] = 1$ at stationarity
+$$
+    \text{Cov}(Z_{n-1}^2, Z_n^2) &= \mathbb{E}[Z_{n-1}^2 Z_n^2] - \mathbb{E}[Z_{n-1}^2]\mathbb{E}[Z_n^2] = \frac{5}{3} - (1)(1) = \frac{2}{3}
+$$
+Because $\text{Cov}(Z_{n-1}^2, Z_n^2) > 0$, we conclude that $Z_{n-1}^2$ and $Z_n^2$ are positively correlated. 
+
+
+\section{Problem 2}
+In this problem we are considering the random intercept linear model for which
+$$y_{ij} = \mu + \gamma_i + \epsilon_{ij}$$
+for each cluster $i = 1,2, \ldots, m$ and for each observation within each cluster $j = 1,2,\ldots, n_i$ where 
+$$\epsilon_{ij}|\tau \sim N(0,\tau^{-1})$$
+and
+$$\gamma_i|\nu \sim N(0,\nu^{-1}).$$
+We first upload the data containing observations $y$ and the grouping factor $i$ as described.
+
+\subsection{Point a)}
+Solved in R. We will need the estimates to compare them to result later in the exercise.
+We get that the MLE value of $\mu$ is 10.1888, the MLE value of $1/\tau$ is 0.7560 and the MLE value of $1/\nu$ is 0.2301.
+
+<<problem2a, fig.width=5, eval=FALSE, fig.height=4, out.width='0.7\\textwidth'>>=
+library(glmmTMB)
+library(coda)
+
+load(url("https://www.math.ntnu.no/emner/TMA4300/2026v/random-intercept-data.RData"))
+
+mod <- glmmTMB(y ~ (1 | i), data = data)
+summary(mod)
+@
+
+\begin{lstlisting}
+Family: gaussian  ( identity )
+Formula:          y ~ (1 | i)
+Data: data
+
+      AIC       BIC    logLik -2*log(L)  df.resid 
+    280.3     288.1    -137.2     274.3        97 
+
+Random effects:
+
+Conditional model:
+ Groups   Name        Variance Std.Dev.
+ i        (Intercept) 0.2301   0.4797  
+ Residual             0.7560   0.8695  
+Number of obs: 100, groups:  i, 20
+
+Dispersion estimate for gaussian family (sigma^2): 0.756 
+
+Conditional model:
+            Estimate Std. Error z value Pr(>|z|)    
+(Intercept)  10.1888     0.1381   73.79   <2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+\end{lstlisting}
+
+\subsection{Point b)}
+To do Bayesian interference we use a uniform prior $\pi(\mu) \propto 1$ on the global intercept and assume the precision parameters to be $\tau \sim \Gamma(\alpha, \alpha)$ and $\nu \sim \Gamma(\alpha, \alpha)$ where $\alpha, \tau$ and $\nu$ are independent. 
+To derive the full conditionals for a Gibbs sampler, we start with the joint posterior density. We write out the full joint density $\pi(\mu,\gamma,\tau,\nu|y)$ using the independence of the prior and the hierarchical structure as:
+$$\pi(\mu,\gamma,\tau,\nu|y) \propto \left(\prod_{i = 1}^{m} \prod_{j = 1}^{n_i}\pi(y_{ij}|\mu,\gamma_i,\tau)\right) \times \left(\prod_{i = 1}^{m}\pi(\gamma_i|\nu)\right) \times \pi(\mu) \times \pi(\tau) \times \pi(\nu).$$
+Using the distributions, we get that
+$$\pi(\mu,\gamma,\tau,\nu|y) \propto \tau^{N/2} \exp{\left(-\frac{\tau}{2}\sum_{i,j}(y_{ij}-\mu-\gamma_i)^2\right)}\cdot \nu^{m/2} \exp{\left(-\frac{\nu}{2}\sum_i \gamma_i^2\right)} \cdot 1 \cdot \tau^{\alpha - 1} e^{-\alpha r} \cdot \nu^{\alpha - 1}.$$
+
+\vspace{12pt}
+\noindent We continue with finding the full conditional for $\mu$ by taking only terms in joint posterior that contain $\mu$:
+$$\pi(\mu|y,\gamma,\tau,\nu) \propto \exp{\left(-\frac{\tau}{2}\sum_{i,j}(y_{ij}-\mu-\gamma_i)^2\right)}.$$
+Let $N + \sum_i n_i$. We expand the quadratic equation and complete the square relative to $\mu$. This is a standard Normal kernel. The precision is the coefficient of $-\frac{1}{2}\mu^2$, which is $N \tau$ and the mean is the value that minimizes the sum of squares, so our distribution is
+$$\mu|y,\gamma,\tau,\nu \sim N\left(\frac{1}{N}\sum_{i,j}(y_{ij} - \gamma_i),\frac{1}{N \tau}\right).$$
+
+\vspace{12pt}
+\noindent We want to find the full conditional for $\gamma_i$. For a specific cluster $i$, we gather terms containing $\gamma_i$. We note that $\gamma_i$ appears in the likelihood for all $j$ observations in that cluster and in its own random effect prior:
+$$\pi(\gamma|y,\mu,\tau,\nu) \propto \exp{\left(-\frac{\tau}{2}\sum_{j = 1}^{n_i}(y_{ij} - \mu - \gamma_i)^2-\frac{\nu}{2}\gamma_i^2\right)}.$$
+The exponent is a sum of two quadratics in $\gamma_i$. Precision is a sum of the individual precisions, so $n_i \tau + \nu$, and the mean is a weighted average, so $\frac{\tau \sum_{j}(y_{ij} - \mu) + \nu(0)}{n_i \tau + \nu}$. The distribution is then
+$$\gamma_i|y,\mu,\tau,\nu \sim N\left(\frac{\tau \sum_{j = 1}^{n_i}(y_{ij} - \mu)}n_i \tau + \nu}, \frac{1}{n_i \tau + \nu}\right).$$
+
+\vspace{12pt}
+\noindent We want to find the full conditional for $\tau$. We isolate terms with $\tau$ and get:
+$$\pi(\tau|y,\gamma,\mu,\nu) \propto \tau^{N/2}\exp{\left(-\frac{\tau}{2}\sum_{i,j}(y_{ij}-\mu-\gamma_i)^2\right)} \cdot \tau^{\alpha - 1}e^{-\alpha \tau}.$$
+We combine the powers of $\tau$ and the terms in the exponent to get:
+$$\pi(\tau|y,\gamma,\mu,\nu) \propto \tau^{(\alpha + N/2)-1}\exp{\left(-\tau\left(\alpha + \frac{1}{2}\sum_{i,j}(y_{ij}-\mu - \gamma_i\right)\right)}.$$
+We recognize the kernel of a Gamma distribution and get:
+$$\tau|y,\gamma,\mu,\nu \sim \Gamma\left(\alpha + \frac{N}{2}, \alpha + \frac{1}{2} \sum_{i,j} (y_{ij}-\mu -\gamma_i)^2\right).$$
+
+\vspace{12pt}
+\noindent Lastly, we want to find the full conditional for $\nu$, isolating the terms with $\nu$ we get:
+$$\pi(\nu|y,\gamma,\mu,\tau) \propto \nu^{m/2} \exp{\left(-\frac{\nu}{2}\sum_{i = 1}^m \gamma_i^2\right)}\cdot \nu^{\alpha - 1}e^{-\alpha \nu}.$$
+Similarly as before, combining terms gives:
+$$\nu|y,\gamma,\mu,\tau \sim \Gamma\left(\alpha + \frac{m}{2}, \alpha + \frac{1}{2}\sum_{i = 1}^m \gamma_i^2\right).$$
+
+
+\subsection{Point c)}
+\noindent We implement Gibbs sampler in R. We let $\theta = (\mu, \gamma_1, \ldots, \gamma_m, \tau, \nu)$ be the vector of all unknown parameters and we want to draw samples from the joint posterior $\pi(\theta|y) \propto \pi(y|\theta) \pi(\theta)$. The Gibbs sampler moves from state $\theta^{(s)}$ to $\theta^{(s + 1)$ by updating each component one by one, conditioned on the most recent values of all other components. For algorithm, we need data $y_{ij}$, hyperparameters $\alpha$ and number of total iterations $S$. Based on that we want it to return a sequence of samples $\{\mu^{(s)}, \gamma^{(s)}, \tau^{(s)}, \nu^{(s)}\}_{s = 1}^S$ that represents the posterior distribution. 
+
+\vspace{12pt}
+\noindent We first set the initial values for all parameters at $s = 0$ as $\mu^{(0)} = mean(y), \gamma_i^{(0)} = 0$ for all $i = 1, \ldots, m$, $\tau^{(0)} = 1$ and $\nu^{(0)} = 1$. For iterations $s = 1, \ldots, S$, where obviously $S = 20000$, we update parameters based on the previous full conditionals from point b) as:
+
+\begin{align*}
+\mu^{(s)} &\sim N \left( \frac{1}{N} \sum_{i,j} (y_{ij} - \gamma_i^{(s-1)}), \frac{1}{N \tau^{(s-1)}} \right) \\
+\gamma_i^{(s)} &\sim N \left( \frac{\tau^{(s-1)} \sum_{j=1}^{n_i} (y_{ij} - \mu^{(s)})}{n_i \tau^{(s-1)} + \nu^{(s-1)}}, \frac{1}{n_i \tau^{(s-1)} + \nu^{(s-1)}} \right), \quad i = 1, \dots, m \\
+\tau^{(s)} &\sim \Gamma \left( \alpha + \frac{N}{2}, \alpha + \frac{1}{2} \sum_{i,j} (y_{ij} - \mu^{(s)} - \gamma_i^{(s)})^2 \right) \\
+\nu^{(s)} &\sim \Gamma \left( \alpha + \frac{m}{2}, \alpha + \frac{1}{2} \sum_{i=1}^m (\gamma_i^{(s)})^2 \right)
+\end{align*}
+
+\noindent Then, the algorithm stores the vectors of parameters $\theta^{(s)}$ as the $s$-th row of result matrix. The returned matrix is of dimension $20000 \times (m+3)$, as we have the parameters $\mu, \gamma_1, \gamma_2, \ldots, \gamma_m, \tau, \nu$, but we decide to store corresponding variances $1/\mu$ and $1/\tau$ instead of parameters $\nu$ and $\tau$ as proposed by the instructions.
+
+<<problem2c, fig.width=5, fig.height=4, eval=FALSE, out.width='0.7\\textwidth'>>=
+library(coda)
+run_gibbs <- function(data, alpha, iterations, prior_type = "gamma") {
+  y <- data$y
+  group <- as.numeric(as.factor(data$i))
+  m <- max(group)
+  N <- length(y)
+  ni <- as.numeric(table(group))
+  
+  mu <- mean(y)
+  gamma <- rep(0, m)
+  tau <- 1
+  nu <- 1
+  
+  samples <- matrix(NA, iterations, m + 3)
+  colnames(samples) <- c("mu", paste0("gamma", 1:m), "var_eps", "var_gamma")
+  
+  for (s in 1:iterations) {
+    mu_mean <- sum(y - gamma[group]) / N
+    mu <- rnorm(1, mu_mean, sqrt(1 / (N * tau)))
+    
+    sum_y_mu <- tapply(y - mu, group, sum)
+    prec_gamma <- ni * tau + nu
+    mean_gamma <- (tau * sum_y_mu) / prec_gamma
+    gamma <- rnorm(m, mean_gamma, sqrt(1 / prec_gamma))
+    
+    ss_eps <- sum((y - mu - gamma[group])^2)
+    ss_gamma <- sum(gamma^2)
+    
+    if (prior_type == "gamma") {
+      tau <- rgamma(1, alpha + N / 2, alpha + 0.5 * ss_eps)
+      nu <- rgamma(1, alpha + m / 2, alpha + 0.5 * ss_gamma)
+    } else if (prior_type == "mh_logist") {
+      tau_prop <- rgamma(1, N / 2, 0.5 * ss_eps)
+      ratio_tau <- (tau_prop * (tau + nu)^2) / (tau * (tau_prop + nu)^2)
+      if (runif(1) < ratio_tau) tau <- tau_prop
+      
+      nu_prop <- rgamma(1, m / 2, 0.5 * ss_gamma)
+      ratio_nu <- (nu_prop * (nu + tau)^2) / (nu * (nu_prop + tau)^2)
+      if (runif(1) < ratio_nu) nu <- nu_prop
+    }
+    
+    samples[s, ] <- c(mu, gamma, 1/tau, 1/nu)
+  }
+  return(as.mcmc(samples))
+}
+
+res_c <- run_gibbs(data, 0.0001, 20000)
+@
+
+\subsection{Point d)}
+Solved in R. When running the sampler with the small $\alpha$, we expect the posterior means for $\mu$, $\sigma_{\epsilon} = 1/\tau$ and $\sigma_{\gamma}^2 = 1/\nu$ to be very close to the Maximum Likelihood Estimates obtained in part $a$. We use 20000 iterations and are looking for the indicator that the chain has converged and is exploring the posterior distribution efficiently.
+We get the results of the posterior mean of $\mu$ to be 10.188965, of $1/\tau$ to be 0.800129 and of $1/\nu$ to be 0.246184. 
+
+\begin{center}
+\begin{tabular}{ |c|c|c| } 
+\hline
+Parameter & MLE estimate & Posterior mean \\
+\hline
+$\mu$ & 10.1888 & 10.188965 \\ 
+$\sigma_{\epsilon} = 1/\tau$& 0.7560 & 0.800129 \\ 
+$\sigma_{\gamma}^2 = 1/\nu$& 0.2301 & 0.246184 \\ 
+\hline
+\end{tabular}
+\end{center}
+
+\noindent From table above, we see that results are close to the MLE estimates from point a.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{Project2-problem2d.png}
+    \caption{Posterior means}
+    \label{figure2d}
+\end{figure}
+
+
+<<problem2d, fig.width=5, fig.height=4, eval=FALSE, out.width='0.7\\textwidth'>>=
+summary(res_c)
+plot(res_c[, c("mu", "var_eps", "var_gamma")])
+@
+
+\begin{lstlisting}
+Iterations = 1:20000
+Thinning interval = 1 
+Number of chains = 1 
+Sample size per chain = 20000 
+
+1. Empirical mean and standard deviation for each variable,
+   plus standard error of the mean:
+
+               Mean     SD  Naive SE Time-series SE
+mu        10.185510 0.1448 0.0010236       0.002323
+gamma1    -0.233373 0.3147 0.0022253       0.003720
+gamma2    -0.242708 0.3162 0.0022358       0.003485
+gamma3    -0.308649 0.3264 0.0023083       0.003796
+gamma4     0.449992 0.3405 0.0024074       0.005437
+gamma5     0.003572 0.3080 0.0021781       0.002728
+gamma6    -0.197151 0.3162 0.0022361       0.003075
+gamma7     0.078868 0.3096 0.0021889       0.002761
+gamma8     0.216830 0.3169 0.0022406       0.003647
+gamma9     0.320971 0.3241 0.0022914       0.004245
+gamma10    0.055233 0.3072 0.0021720       0.002860
+gamma11    0.116773 0.3083 0.0021797       0.002749
+gamma12   -0.067739 0.3090 0.0021848       0.002872
+gamma13   -0.326349 0.3243 0.0022933       0.004387
+gamma14   -0.525799 0.3489 0.0024670       0.006201
+gamma15    0.667116 0.3762 0.0026599       0.007801
+gamma16   -0.445420 0.3382 0.0023915       0.005549
+gamma17   -0.326015 0.3259 0.0023043       0.004493
+gamma18    0.765371 0.3971 0.0028080       0.008100
+gamma19    0.065504 0.3078 0.0021764       0.002748
+gamma20   -0.012446 0.3082 0.0021794       0.002740
+var_eps    0.798693 0.1367 0.0009665       0.002271
+var_gamma  0.249008 0.1616 0.0011428       0.003298
+
+2. Quantiles for each variable:
+
+              2.5%        25%       50%      75%    97.5%
+mu         9.89824 10.0916913 10.185406 10.27897 10.47465
+gamma1    -0.87657 -0.4392408 -0.219148 -0.01757  0.35916
+gamma2    -0.90366 -0.4416567 -0.227119 -0.02654  0.35020
+gamma3    -0.98640 -0.5232041 -0.293865 -0.07500  0.28218
+gamma4    -0.16029  0.2062298  0.438302  0.67333  1.15455
+gamma5    -0.61170 -0.1964204  0.003238  0.19679  0.62374
+gamma6    -0.83808 -0.4014916 -0.181471  0.01373  0.39964
+gamma7    -0.52800 -0.1182342  0.071380  0.27721  0.70488
+gamma8    -0.38039  0.0007241  0.204173  0.42259  0.86639
+gamma9    -0.26685  0.0899500  0.309570  0.52959  0.99943
+gamma10   -0.55313 -0.1391101  0.047277  0.24978  0.68537
+gamma11   -0.47713 -0.0819870  0.105167  0.31792  0.74801
+gamma12   -0.68814 -0.2648158 -0.059969  0.12836  0.54040
+gamma13   -0.99998 -0.5357033 -0.311030 -0.09904  0.27123
+gamma14   -1.24895 -0.7557604 -0.515306 -0.27591  0.09498
+gamma15   -0.01740  0.4000540  0.665100  0.92432  1.42008
+gamma16   -1.13521 -0.6711858 -0.434699 -0.20343  0.16152
+gamma17   -1.01193 -0.5378913 -0.310574 -0.09525  0.26464
+gamma18    0.01406  0.4909875  0.765174  1.03417  1.55247
+gamma19   -0.54491 -0.1316974  0.058065  0.26218  0.69234
+gamma20   -0.62949 -0.2113478 -0.010615  0.18052  0.60265
+var_eps    0.57670  0.7013958  0.782665  0.87932  1.11040
+var_gamma  0.01653  0.1385178  0.221541  0.32490  0.65097
+\end{lstlisting}
+
+\vspace{6pt}
+\noindent The Bayesian estimate is almost identical to the MLE which is expected because a flat prior $\pi(\mu) \propto 1$ is used, meaning that the data dominate the estimate. The Bayesian posterior means of both variances are slightly higher than MLE estimates. The plots of $\mu$ and $1/\tau$ look normal as they are centered around a stable mean with no visible trends of drifting which suggests excellent convergence and mixing. On the other hand, while we see that the $1/\nu$ has converged, we also see that the trace of it is more spikier. It frequently drops down to close to zero and then jumps up, indicating that the sampler is exploring a region where the random effect variance is nearly non-existent. This suggests that the data allow for the possibility that the group-level variation is negligible.
+
+\subsection{Point e)}
+The proportion of the variance explained by the random effect is $p = \frac{\nu^{-1}}{\nu^{-1}+\tau^{-1}} = \frac{\tau}{\nu + \tau}$. Given $\nu, \tau \sim \Gamma(\alpha,\alpha)$ independently, we know that $p = \frac{\tau}{\nu + \tau}$ follows a Beta distribution:
+$$p \sim Beta(\alpha,\alpha).$$
+The posterior mean for the proportion of variance $p$ is 0.2261526. The density plot shows a bump near 0.2 but is also has a strange behavior near 0. Regarding the prior, when $\alpha = 0.0001$, the density of the $Beta(0.0001,0.0001)$ is extremely concentrated at the boundaries, so near 0 and 1, where it spikes to infinity, and is 0 elsewhere. In my opinion, a $Beta(0.0001,0.0001)$ prior does not reasonably represent personal beliefs. This represents a very prior belief that either the group effect is non-existent ($p \approx 0$) or the error is non-existent ($p \approx 1$). This is usually not a reasonable prior as it penalizes intermediate values of $p$ where most real-world data actually lies.
+
+<<problem2e, fig.width=5, fig.height=4, eval=FALSE, out.width='0.7\\textwidth'>>=
+post_p <- res_c[, "var_gamma"] / (res_c[, "var_gamma"] + res_c[, "var_eps"])
+plot(post_p)
+summary(post_p)
+@
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{Project2-problem2e.png}
+    \caption{Posterior trace and density}
+    \label{figure2e}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{Project2-probelm2e2.png}
+    \caption{Prior and posterior of p}
+    \label{figure2e2}
+\end{figure}
+
+\noindent We also include the summary of only posterior p (for purposes of checking mean):
+\begin{lstlisting}
+Iterations = 1:20000
+Thinning interval = 1 
+Number of chains = 1 
+Sample size per chain = 20000 
+
+1. Empirical mean and standard deviation for each variable,
+   plus standard error of the mean:
+
+          Mean             SD       Naive SE Time-series SE 
+     0.2283693      0.1163001      0.0008224      0.0029150 
+
+2. Quantiles for each variable:
+
+   2.5%     25%     50%     75%   97.5% 
+0.01681 0.14567 0.22227 0.30338 0.47300
+\end{lstlisting}
+
+\subsection{Point f)}
+In this point, we consider the limiting case of $\alpha \rightarrow 0$ as an attempt at being completely non-imformative. The priors for $\nu$ and $\tau$ then converge to improper objective so-called scale priors $\pi(\nu) \propto 1/\nu$ and $\pi(\tau) \propto 1/\tau$. We first make some changes in the previous code for Gibbs sampler so we will be able to change the initial values. We set $\alpha = 0$. Then we try different starting values, as shown in the code below. Because plotting $1/\nu$ directly can hide what is happening near zero, we rather create trace plots for $\log{(1/\nu)}$. 
+
+<<problem2f, fig.width=5, fig.height=4, eval=FALSE, out.width='0.7\\textwidth'>>=
+run_gibbs_f <- function(data, iterations = 20000, start_nu = 1, start_tau = 1) {
+  y <- data$y
+  group <- as.numeric(as.factor(data$i))
+  m <- max(group)
+  N <- length(y)
+  ni <- as.numeric(table(group))
+  alpha <- 0
+  
+  mu <- mean(y)
+  gamma <- rep(0, m)
+  tau <- start_tau
+  nu <- start_nu
+  
+  samples <- matrix(NA, iterations, 3)
+  colnames(samples) <- c("mu", "var_eps", "var_gamma")
+  
+  for (s in 1:iterations) {
+    mu <- rnorm(1, sum(y - gamma[group]) / N, sqrt(1 / (N * tau)))
+    
+    prec_gamma <- ni * tau + nu
+    mean_gamma <- (tau * tapply(y - mu, group, sum)) / prec_gamma
+    gamma <- rnorm(m, mean_gamma, sqrt(1 / prec_gamma))
+    
+    ss_eps <- sum((y - mu - gamma[group])^2)
+    tau <- rgamma(1, N/2, 0.5 * ss_eps)
+    
+    ss_gamma <- sum(gamma^2)
+    nu <- rgamma(1, m/2, 0.5 * ss_gamma)
+    
+    samples[s, ] <- c(mu, 1/tau, 1/nu)
+  }
+  return(samples)
+}
+
+res_f1 <- run_gibbs_f(data, 20000, 1, 1)
+res_f2 <- run_gibbs_f(data, 20000, 0.0001, 1)
+res_f3 <- run_gibbs_f(data, 20000, 1000, 1)
+res_f4 <- run_gibbs_f(data, 20000, 1, 0.0001)
+res_f5 <- run_gibbs_f(data, 20000, 1, 1000)
+
+par(mfrow = c(5, 2), mar = c(3, 3, 2, 1))
+
+plot(res_f1[, 3], type = "l", main = "Plot 1 var")
+plot(log(res_f1[, 3]), type = "l", main = "Plot 1 log-var")
+
+plot(res_f2[, 3], type = "l", main = "Plot 2 var")
+plot(log(res_f2[, 3]), type = "l", main = "Plot 2 log-var")
+
+plot(res_f3[, 3], type = "l", main = "Plot 3 var")
+plot(log(res_f3[, 3]), type = "l", main = "Plot 3 log-var")
+
+plot(res_f4[, 3], type = "l", main = "Plot 4 var")
+plot(log(res_f4[, 3]), type = "l", main = "Plot 4 log-var")
+
+plot(res_f5[, 3], type = "l", main = "Plot 5 var")
+plot(log(res_f5[, 3]), type = "l", main = "Plot 5 log-var")
+@
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{Project2-problem2f2.png}
+    \caption{Posterior for limiting case with different initial values}
+    \label{figure2f2}
+\end{figure}
+
+\noindent The trace plots for $\alpha=0$ show clear evidence of an improper posterior. While the full conditionals remain mathematically proper, the Gibbs sampler fails to converge to a stable distribution. Instead, the variance component $1/\nu$ exhibits absorbing behavior near zero, frequently collapsing to near-zero values (as seen by the extreme drops in the log-trace plots). Furthermore, the chains are highly sensitive to initial values and do not reach a common stationary distribution, confirming that the objective scale prior $\pi(\nu) \propto 1/\nu$ is not supported by the likelihood in this random intercept model.
+
+\subsection{Point g)}
+We are given $\sigma^2 = \nu^{-1} + \tau^{-1}$ and $p = \frac{\nu^{-1}}{\nu^{-1}+\tau^{-1}} = \frac{\tau}{\nu + \tau}$. The target prior is $\pi(\sigma^2, p) \propto \frac{1}{\sigma^2}$. 
+To find $\pi(\nu, \tau)$, we use the formula for change of variables for mapping $(\sigma^2, p) \rightarrow (\nu, \tau)$. We note that $\sigma^2 = \frac{\nu + \tau}{\nu \tau}$ and compute the partial derivatives
+\begin{align*}
+    \frac{\partial \sigma^2}{\partial \nu} &= -\nu^{-2}\\
+    \frac{\partial \sigma^2}{\partial \tau} &= -\tau^{-2}\\
+    \frac{\partial p}{\partial \nu} &= -\frac{\tau}{(\nu + \tau)^2}\\
+    \frac{\partial p}{\partial \tau} &= -\frac{\nu}{(\nu + \tau)^2}
+\end{align*}
+and get the Jacobian determinant $|J| = \frac{1}{\nu \tau(\nu + \tau)}$. It follows that
+$$\pi(\nu,\tau)= \pi(\sigma^2,p)\times |J| \propto \left(\frac{\nu \tau}{\nu + \tau}\right) \left(\frac{1}{\nu \tau(\nu + \tau)}\right) \propto \frac{1}{(\nu + \tau)^2}.$$
+We need to only be careful on the right domain, so inclusion of indicatior functions. We are given the indicators $I(0 < p < 1) I(\sigma^2 >0)$. If we substitute $p$ and $\sigma^2$ by our definitions we get the conditions $0 < \frac{\tau}{\nu + \tau} < 1$ and $\frac{1}{\nu} + \frac{1}{\tau} > 0$. Since variances must be strictly positive, both $\nu > 0$ and $\tau > 0$. Under these conditions, both inequalities above are satisfied and therefore the indicatos functions map directly to $I(\nu > 0) I(\tau > 0)$. We therefore get
+$$\pi(\nu, \tau) \propto \frac{1}{(\nu + \tau)^2} I(\nu >0)I(\tau>0)$$
+which is exactly what we wanted.
+
+\vspace{12pt}
+\noindent To find $\pi(\ln{\tau}|\ln{\nu})$, let $x = \ln{\nu}$ and $y = \ln{\tau}$. From this it follows that $\nu = e^x$ and $\tau = e^y$. The joint density of $\pi(x,y)$ is found the same way as before, computing the partial derivatives:
+\begin{align*}
+    \frac{\partial \nu}{\partial x} &= e^x\\
+    \frac{\partial \tau}{\partial x} &= 0\\
+    \frac{\partial \nu}{\partial y} &= 0\\
+    \frac{\partial \tau}{\partial y} &= e^y
+\end{align*}
+and the Jacobian determinant is $|J| = e^x e^y$. So:
+$$\pi(x,y) = \pi(\nu, \tau) |J| \propto \frac{e^x e^y}{(e^x + e^y)^2}.$$
+To find the density of $y|x$, we treat $x$ as a constant:
+$$\pi(y|x) \propto \frac{e^x e^y}{(e^x + e^y)^2} = \frac{e^{y - x}}{{(1 + e^{y - x})^2}}.$$
+This is exactly the probability density function of a Logistic Distribution with location parameter $\mu = x = \ln{\nu}$ and scale parameter 1. I think that this is a better representation of prior beliefs as a uniform prior $p \in (0,1)$ means you believe all possible proportions of variance explained by the grouping factor are equally likely. This avoids the assumption made by (4) that $p$ must be almost exactly 0 or exactly 1. This prior is flatter on the log-scale than the Gamma prior, making it more robust.
+
+\subsection{Point h)}
+Since the prior in previous point is not conjugate, we cannot sample $\tau$ and $\nu$ directly using Gamma distributions. Instead, we use a Metropolis-Hastings step. We propose a new values using the old Gamma conditional and then accept or reject it based on the ratio of the new prior to the old prior. 
+We use the full conditional based on equation (4) as our proposals $Q$. We denote $SS_{\gamma} = \sum_{i = 1}^m \gamma_i^2$ and $SS_{\epsilon} = \sum_{i,j} \epsilon_{i,j}^2$. Taking the limiting case $\alpha \rightarrow 0$ the proposal for $\nu$ becomes $\nu \sim \Gamma(m/2, SS_{\gamma}/2)$. The target posterior for $\nu$ is
+$$\pi(\nu|\ldots) \propto \nu^{m/2} e^{-\nu/2 SS_{\gamma}}\frac{1}{(\nu + \tau)^2}.$$
+The Metropolis-Hastings acceptance ratio $r$ is:
+$$r = \frac{\pi(\nu^*|\ldots)}{\pi(\nu|\ldots)} \frac{Q(\nu)}{Q(\nu^*)} = \frac{\frac{(\nu^*)^{m/2}}{e^{-\frac{\nu^*}{2} SS_{\gamma}}}}{\frac{\nu^{m/2}}{(\nu + \tau)^2}e^{-\frac{\nu^*}{2} SS_{\gamma}}} \times \frac{\nu^{m/2-1}e^{-\frac{\nu^*}{2} SS_{\gamma}}}{(\nu^*)^{m/2-1}e^{-\frac{\nu^*}{2} SS_{\gamma}}}.$$
+This cancels out to 
+$$r = \frac{\nu^*}{\nu}\left(\frac{\nu + \tau}{\nu^* + \tau}\right)^2.$$
+We got the posterior mean of $\mu$ to be 10.1899, of $1/\nu$ to be 0.7711 and of $1/\tau$ to be 0.3016 . We do not encounter same convergence problems as in f as we see on density plot of $1/\tau$ that now there is only one peak and no weird behavior around 0.
+
+<<problem2h, fig.width=5, fig.height=4, eval=FALSE, out.width='0.7\\textwidth'>>=
+run_gibbs_h <- function(data, iterations) {
+  y <- data$y
+  group <- as.numeric(as.factor(data$i))
+  m <- max(group)
+  N <- length(y)
+  ni <- as.numeric(table(group))
+  
+  mu <- mean(y)
+  gamma <- rep(0, m)
+  tau <- 1
+  nu <- 1
+  
+  samples <- matrix(NA, iterations, m + 3)
+  colnames(samples) <- c("mu", paste0("gamma", 1:m), "var_eps", "var_gamma")
+  
+  for (s in 1:iterations) {
+    mu_mean <- sum(y - gamma[group]) / N
+    mu <- rnorm(1, mu_mean, sqrt(1 / (N * tau)))
+    
+    sum_y_mu <- tapply(y - mu, group, sum)
+    prec_gamma <- ni * tau + nu
+    mean_gamma <- (tau * sum_y_mu) / prec_gamma
+    gamma <- rnorm(m, mean_gamma, sqrt(1 / prec_gamma))
+    
+    ss_eps <- sum((y - mu - gamma[group])^2)
+    tau_prop <- rgamma(1, N / 2, ss_eps / 2)
+    ratio_tau <- (tau_prop / tau) * ((nu + tau) / (nu + tau_prop))^2
+    if (runif(1) < ratio_tau) tau <- tau_prop
+    
+    ss_gamma <- sum(gamma^2)
+    nu_prop <- rgamma(1, m / 2, ss_gamma / 2)
+    ratio_nu <- (nu_prop / nu) * ((nu + tau) / (nu_prop + tau))^2
+    if (runif(1) < ratio_nu) nu <- nu_prop
+    
+    samples[s, ] <- c(mu, gamma, 1/tau, 1/nu)
+  }
+  return(coda::as.mcmc(samples))
+}
+
+res_h <- run_gibbs_h(data, 20000)
+summary(res_h[, c("mu", "var_eps", "var_gamma")])
+plot(res_h[, c("mu", "var_eps", "var_gamma")])
+
+post_p_h <- res_h[, "var_gamma"] / (res_h[, "var_gamma"] + res_h[, "var_eps"])
+plot(post_p_h)
+summary(post_p_h)
+@
+
+\noindent Graphs, that are needed for the comparison to part d:
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{Project2-problem2h3.png}
+    \caption{Comparison to point d}
+    \label{figure2h3}
+\end{figure}
+
+\begin{lstlisting}
+Iterations = 1:20000
+Thinning interval = 1 
+Number of chains = 1 
+Sample size per chain = 20000 
+
+1. Empirical mean and standard deviation for each variable,
+   plus standard error of the mean:
+
+             Mean     SD  Naive SE Time-series SE
+mu        10.1886 0.1514 0.0010706       0.002503
+var_eps    0.7688 0.1221 0.0008637       0.001222
+var_gamma  0.3042 0.1669 0.0011804       0.002567
+
+2. Quantiles for each variable:
+
+            2.5%     25%     50%     75%   97.5%
+mu        9.8921 10.0880 10.1874 10.2891 10.4839
+var_eps   0.5659  0.6819  0.7567  0.8431  1.0379
+var_gamma 0.0799  0.1883  0.2719  0.3809  0.7223
+\end{lstlisting}
+
+
+\vspace{12pt}
+\noindent Graphs that are needed for the comparison to point e:
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{Project2-problem2h2.png}
+    \caption{Compariton to point e}
+    \label{figure2h2}
+\end{figure}
+
+\begin{lstlisting}
+Iterations = 1:20000
+Thinning interval = 1 
+Number of chains = 1 
+Sample size per chain = 20000 
+
+1. Empirical mean and standard deviation for each variable,
+   plus standard error of the mean:
+
+          Mean             SD       Naive SE Time-series SE 
+     0.2728129      0.1072693      0.0007585      0.0017931 
+
+2. Quantiles for each variable:
+
+   2.5%     25%     50%     75%   97.5% 
+0.08496 0.19544 0.26696 0.34151 0.50211
+\end{lstlisting}
+
+\end{lstlistings}
+
+\noindent Unlike the limiting case in part f) where the objective scale prior $\pi(\nu) \propto 1/\nu$ resulted in an improper posterior, the alternative prior $\pi(\sigma^2,p) \propto 1/\sigma^2$ leads to excellent convergence properties. The trace plots for $\mu, \sigma_{\eps}^2$ and $\sigma_{\gamma}^2$ all resemble stationary, well-mixing chains (the 'hairy caterpillar' pattern). The absorbing behavior near zero that plagued the variance component in part f) is completely eliminated, confirming that this new joint prior yields a proper posterior distribution.
+
+\vspace{12pt}
+\noindent When comparing the parameter estimates to part d) and e), the choice of prior has a noticeable impact on the proportion of variance explained by the random effect (p). Under the inverse-gamma priors in part d) (which implied an extreme $Beta(0.0001,0.0001)$ prior on p), the posterior mean of p was 0.228. In contrast, using the uniform prior on $p \in \(0,1\) in part h yields a slightly higher posterior mean of $p \approx 0.267$. Because the $Beta(0.0001,0.0001)$ prior places massive weight at exactly 0 and 1, it overly shrinks the variance component. The uniform prior from part h) allows the data to speak more freely, resulting in a more robust and slightly larger estimate for the group-level variance.
+
+
+\section{Problem 3}
+\subsection{Point a)}
+\subsubsection{Initial distribution}
+Starting from the first order auto-regressive model
+\begin{equation}\label{autoregressive_model}
+y_t-\mu = \phi(y_{t-1}-\mu)+\varepsilon_t\ , \quad \varepsilon _t \sim \mathcal N(0,\tau^{-1})
+\end{equation}
+to show that $\mathbb E[y_1|\mu,\phi,\tau] = \mu $ and $Var(y_1|\mu,\phi,\tau) = \frac{\tau^{-1}}{1-\phi^2}$, we start by centering the process and defining $x_t=y_t-\mu$ and $y_{t-1}=y_{t-1}-\mu$. The model becomes:
+$$
+    x_t = \phi x_{t-1}+\varepsilon_t
+$$
+with $\varepsilon_t \sim \mathcal N(0,\tau^{-1})$.
+
+Iterating the relation:
+\begin{align*}
+    x_t &= \phi x_{t-1}+\varepsilon_t= \\ 
+    & = \phi(\phi x_{t-2}+\varepsilon_{t-1})+\varepsilon_t
+=\\
+&= \phi^kx_{t-k}+\sum_{j=0}^{k-1}\phi^j\varepsilon_{t-j} \ .
+\end{align*}
+Since $|\phi|<1$ a priori, then at stationarity (as $k\to \infty$ ), 
+$$
+    \phi ^kx_{t-k} \to 0
+$$
+and then,
+$$
+    x_t = \sum_{j=0}^{\infty}\phi^j\varepsilon_{t-j}
+$$
+Since $\varepsilon_{t-j} \sim \mathcal N (0,\tau^{-1} )$ and for the variance property $Var(aX) = a^2Var(X)$, then:
+$$
+    \phi^j\varepsilon_{t-j}\sim\mathcal N\Big ( 0, \frac {\phi ^{2j}}\tau\Big )
+$$
+The sum of normal independent variables is normal. Thus,
+$$
+    x_t \sim \mathcal N (0,\sigma_x^2)
+$$
+where:
+$$
+    \sigma_x^2 = \sum_{j=0}^\infty \frac{\phi ^{2j}}\tau = \frac 1\tau \sum_{j=0}^\infty (\phi^2)^j
+$$
+since $\phi^2<1$, this is a geometrical series, summing to $\frac 1{1-\phi^2}$.
+Thus,
+$$
+    \sigma_x^2 = \frac 1\tau \frac 1{1-\phi^2}
+$$
+$$
+    x_t\sim \mathcal N \Big(0,\frac 1\tau \frac 1{1-\phi^2}\Big )
+$$
+Recalling that $y_t = x_t +\mu$,
+$$
+    y_t \sim \mathcal N \Big(\mu,\frac {\tau ^{-1}}{1-\phi^2}\Big )
+$$
+Since the process is stationary, the distribution is the same for every $t$, thus:
+\begin{align} \label{y1_distribution}
+    y_1 &\sim \mathcal N \Big(\mu,\frac {\tau ^{-1}}{1-\phi^2}\Big ) \\ 
+    \mathbb E[y_1|\mu,\phi,\tau] &= \mu \\
+    Var(y_1|\mu,\phi,\tau) &= \frac {\tau ^{-1}}{1-\phi^2}
+\end{align}
+
+\subsection{Point b)}
+\subsubsection{Reparametrization}
+We can rewrite:
+\begin{equation}\label{new_form}
+    y_t = \beta_0+\beta_1y_t+\varepsilon_t
+\end{equation}
+starting from \ref{autoregressive_model}:
+$$
+    y_t &= \phi(y_t-\mu)+\varepsilon_t+\mu \\
+    & = \mu (1-\phi) + \phi y_t +\varepsilon_t
+$$
+we can then identify:
+\begin{equation}\label{new_parametrization}
+    \beta_0 = \mu (1-\phi) \quad\quad \beta_1= \phi
+\end{equation}
+we can express $\mu$ in terms of $\beta$:
+$$
+    \mu = \frac{\beta_0}{1-\beta_1}
+$$
+Since the original prior was
+$$
+    \pi (\mu,\phi,\tau) \propto I(-1<\phi<1)\frac 1\tau\ ,
+$$
+using the change of variables:
+$$
+\pi(\beta_0,\beta_1,\tau) = \pi(\mu,\phi,\tau)\cdot |\mathbf J|
+$$
+$$
+    |\mathbf J| = \det\begin{bmatrix}
+        \frac{\partial \mu}{\partial \beta_0} & \frac{\partial \mu}{\partial \beta_1}\\
+        \frac{\partial \phi}{\partial \beta_0} & \frac{\partial \phi}{\partial \beta_1}
+    \end{bmatrix}= \det \begin{bmatrix}
+        \frac{1}{1-\beta_1} & \frac{\beta_0}{(1-\beta_1)^2}\\
+        0 & 1
+    \end{bmatrix}=\frac{1}{1-\beta_1}
+$$
+Thus,
+$$
+\pi(\beta_0,\beta_1,\tau) \propto I(-1<\beta_1<1)\frac{1}{1-\beta_1}\frac 1\tau
+$$
+\subsubsection{Posterior distribution}
+Starting from \ref{new_form}, since $\varepsilon_t\sim \mathcal N(0,\tau ^{-1})$, we can see that, for $t=2,\dots, n$, 
+$$
+    y_t|y_{t-1}, \beta,\tau \sim \mathcal N(\beta_0+\beta_1 y_{t-1}, \tau ^{-1})
+$$
+Thus the likelihood is:
+$$
+    L(\beta,\tau) \propto \tau ^{\frac{n-1}{2}} \exp \Big ( -\frac \tau 2 \sum_{t=2} ^ n(y_t-\beta_0-\beta_1y_{t-1} )^2 \Big )
+$$
+
+Considering the matrix forms $\pmb \beta = (\beta_0, \beta_1) ^\top$ and $\mathbf X = \begin{bmatrix}
+    \mathbf 1& \mathbf y_{1:(n-1)}
+\end{bmatrix}$,
+
+Then
+\begin{equation}\label{p3pb_likelihood}
+    L(\pmb\beta,\tau ) \propto \tau ^{\frac {n-1}2} \exp\Big (-\frac \tau 2 (\pmb y_{2:n} - \mathbf X\pmb\beta) ^\top(\pmb y_{2:n}-\mathbf X\pmb\beta ) \Big )
+\end{equation}
+
+From \ref{y1_distribution}, considering the new parameterization \ref{new_parametrization}, we have that
+$$
+    y_1\sim \mathcal N\Big (\frac{\beta_0}{1-\beta_1}, \frac{\tau^{-1}}{1-\beta_1^2}\Big )
+$$
+Thus, the initial density is proportional to:
+$$
+\sqrt{1-\beta_1^2}\tau ^{1/2}\exp\Big (-\frac \tau 2 (1-\beta_1^2) \Big (y_1-\frac{\beta_0}{1-\beta_1}\Big ) ^2\Big )
+$$
+
+We can now get the posterior as
+$$
+    \pi(\pmb\beta, \tau |\pmb y) \propto \text{likelihood} \times \text{initial density} \times \text{prior}
+$$
+\begin{align*}
+\pi(\pmb \beta,\tau | \mathbf y ) &\propto \tau ^{\frac {n-1}2} \exp\Big (-\frac \tau 2 (\pmb y_{2:n} - \mathbf X\pmb\beta) ^\top(\pmb y_{2:n}-\mathbf X\pmb\beta ) \Big )\cdot \\ & \cdot \tau ^{1/2}\sqrt{1-\beta_1^2}\exp\Big (-\frac \tau 2 (1-\beta_1^2) \Big (y_1-\frac{\beta_0}{1-\beta_1}\Big ) ^2\Big )\cdot \\ &\cdot \frac 1\tau \frac{1}{1-\beta_1}I(-1<\beta_1<1)
+\end{align*}
+Rearranging all the terms, we obtain the final formulation of the posterior distribution:
+
+\begin{align*}
+        \pi(\pmb \beta,\tau | \mathbf y ) \propto&
+    \overbrace{\tau ^{\frac {n}2-1}\exp\Big (-\frac \tau 2 (\pmb y_{2:n} - \mathbf X\pmb \beta) ^\top(\pmb y_{2:n}-\mathbf X\pmb\beta ) \Big )}^{(*)}\cdot \\ 
+   &\frac{\sqrt{1-\beta_1^2}}{1-\beta_1}\exp\Big (-\frac \tau 2 (1-\beta_1^2) \Big (y_1-\frac{\beta_0}{1-\beta_1}\Big ) ^2\Big )I(-1<\beta_1<1)
+\end{align*}
+
+\subsection{Point c)}
+In a Metropolis-Hastings independence sampler, the proposal distribution $Q(y|x)$ does not depend on the current state $x$, and so, considering the proposal
+\begin{equation}\label{first_part_exp}
+    (*) = Q(\pmb \beta, \tau |\pmb y) = \tau ^{\frac {n}2-1}\exp\Big (-\frac \tau 2 (\pmb y_{2:n} - \mathbf X\pmb\beta) ^\top( \pmb y_{2:n}-\mathbf X\pmb \beta ) \Big )\ ,
+\end{equation}
+we have:
+$$
+    Q(\pmb \beta ',\tau ' | \pmb\beta,\tau ,\mathbf y) = Q(\pmb\beta', \tau ' |\mathbf y) .
+$$
+Then, we can use the acceptance probability formula for the independence sampler:
+$$
+    \alpha(x,y)  = \min \Big (1,\frac{\pi(y)Q(x)}{\pi(x)Q(y)}\Big )
+$$
+that, in our case, is:
+$$
+\alpha(\pmb \beta, \tau , \pmb \beta', \tau' | \pmb y)
+     = \min \Big (1, \frac{\pi(\pmb \beta', \tau' |\pmb y)Q(\pmb \beta, \tau |\pmb y)}{\pi(\pmb \beta, \tau |\pmb y)Q(\pmb \beta', \tau' |\pmb y)}\Big )
+$$
+defining 
+$$
+H(\pmb \beta, \tau|\pmb y)= \frac{\sqrt{1-\beta_1^2}}{1-\beta_1}\exp\Big (-\frac \tau 2 (1-\beta_1^2) \Big (y_1-\frac{\beta_0}{1-\beta_1}\Big ) ^2\Big )I(-1<\beta_1<1)
+$$
+we notice that
+\begin{itemize}
+    \item $\pi(\pmb \beta, \tau |\pmb y) = Q(\pmb \beta,\tau |\pmb y) \cdot H(\pmb \beta,\tau |\pmb y)$
+    \item $\pi(\pmb \beta', \tau' |\pmb y) = Q(\pmb \beta',\tau '|\pmb y) \cdot H(\pmb \beta',\tau '|\pmb y)$
+\end{itemize}
+And so:
+$$
+    \frac{\pi(\pmb \beta', \tau' |\pmb y)Q(\pmb \beta, \tau |\pmb y)}{\pi(\pmb \beta, \tau |\pmb y)Q(\pmb \beta', \tau' |\pmb y)} = \frac{Q(\pmb \beta',\tau '|\pmb y) \cdot H(\pmb \beta',\tau '|\pmb y)\cdot Q(\pmb \beta,\tau|\pmb y) }{Q(\pmb \beta,\tau |\pmb y) \cdot H(\pmb \beta,\tau |\pmb y)\cdot Q(\pmb \beta',\tau '|\pmb y)} = \frac{H(\pmb \beta',\tau '|\pmb y)}{H(\pmb \beta,\tau |\pmb y)}
+$$
+Thus, the acceptance rate formula becomes:
+$$
+     \alpha(\pmb \beta', \tau' |\pmb \beta, \tau ,\pmb y) &= \min\Big (1, \frac{H(\pmb \beta',\tau '|\pmb  y)}{H(\pmb \beta,\tau |\pmb y)}\Big )
+$$
+Applying the logarithm:
+$$
+    \log \alpha(\pmb \beta', \tau' |\pmb \beta, \tau ,\pmb y) = \min \Big (0,\log H(\pmb \beta',\tau '|\pmb  y)-\log H(\pmb \beta,\tau |\pmb y)\Big)
+$$
+where:
+$$
+    \log H(\pmb \beta,\tau |\pmb y)= \frac 12 \log (1-\beta_1^2)-\log (1-\beta_1) -\frac \tau 2 (1-\beta_1^2) \Big (y_1-\frac{\beta_0}{1-\beta_1}\Big ) ^2
+$$
+So we get the final expression of $\log \alpha $ as:
+$$
+    \log \alpha
+=
+\min \Bigg(
+0,\,
+\frac{1}{2}
+\log
+\frac{1-\beta_1'^2}{1-\beta_1^2}
+-
+\log
+\frac{1-\beta_1'}{1-\beta_1}
+-
+\frac{1}{2}
+\Big[
+\tau'(1-\beta_1'^2)
+\left(
+y_1 - \frac{\beta_0'}{1-\beta_1'}
+\right)^2
+-
+\tau(1-\beta_1^2)
+\left(
+y_1 - \frac{\beta_0}{1-\beta_1}
+\right)^2
+\Big]
+\Bigg)
+$$
+with automatic rejection if $|\beta_1|\geq 1$.
+
+\subsection{Point d)}
+
+Let $\pmb S = (\pmb y-\pmb X\pmb \beta ) ^\top (\pmb y-\pmb X \pmb\beta )$. We can define the OLS estimator and the precision matrix:
+\begin{equation}\label{eq:Q}
+\pmb Q = \pmb X^\top \pmb X
+\end{equation}
+\begin{equation}\label{eq:beta_hat}
+\hat{\pmb \beta} = (\pmb X^\top \pmb X)^{-1} \pmb X^\top \pmb y = \pmb Q^{-1} \pmb X^\top \pmb y
+\end{equation}
+
+We can rewrite the term inside the exponent in \ref{first_part_exp} by adding and subtracting $\pmb X \hat {\pmb \beta}$:
+$$
+    (\pmb y-\pmb X\pmb \beta ) = (\pmb{y-X\hat \beta}) + (\pmb{X\hat \beta - X\beta}) = \hat \varepsilon + \pmb X(\pmb{\hat \beta -\beta})
+$$
+
+When we take the inner product $(\pmb y-\pmb X\pmb \beta ) ^\top (\pmb y-\pmb X\pmb \beta )$, we get:
+$$
+    \hat \varepsilon ^\top \hat \varepsilon+(\pmb{\hat \beta - \beta} )^\top \pmb{X^\top X}(\pmb{\hat \beta -\beta} )+ 2\hat \varepsilon ^ T\pmb X(\pmb{\hat \beta - \beta})
+$$
+
+The term $2 \hat \varepsilon ^T \pmb X(\pmb{\hat \beta -\beta})$ vanishes because, by the definition of OLS residuals, $\hat \varepsilon$ is orthogonal to the column space of $\pmb X$: 
+\begin{align}
+    \hat \varepsilon ^\top \pmb X & = (\pmb{y-X\hat \beta})^\top\pmb X = \pmb y^\top \pmb X - \overbrace{ \pmb{\hat \beta}^\top} ^{(\pmb Q^{-1} \pmb X^\top \pmb y)^\top} \overbrace{\pmb X^\top \pmb X}^{\pmb Q} = \pmb y^\top \pmb X -\pmb y^\top \pmb{XQ}^{-1} \pmb Q = \pmb 0
+\end{align}
+
+So we are left with:
+$$
+    (\pmb y-\pmb X\pmb \beta ) ^\top (\pmb y-\pmb X \pmb\beta ) = \hat \varepsilon ^\top \hat \varepsilon+(\pmb{ \beta - \hat\beta} )^\top \pmb Q(\pmb{\beta - \hat \beta})
+$$
+
+Substituting back into \ref{first_part_exp},
+
+$$
+    \exp \Big (-\frac \tau 2 [(\pmb{\beta - \hat \beta})^\top \pmb Q(\pmb{\beta -\hat \beta}) + \hat \varepsilon ^\top \hat \varepsilon]\Big ) = \exp \Big (-\frac \tau 2 (\pmb{\beta - \hat \beta})^\top \pmb Q(\pmb{\beta -\hat \beta})\Big )\exp \Big (-\frac \tau 2\hat \varepsilon ^\top \hat \varepsilon\Big )
+$$
+
+Splitting the term $\tau$:
+$$
+    \tau ^{\frac n2-1} = \tau ^{\frac p2}\cdot \tau ^{\frac {n-p}2-1}
+$$
+
+Since $|\pmb Q|^{\frac 12}$ (the determinant of $\pmb X^\top \pmb X$) is a constant with respect to $\pmb \beta$ and $\tau$ (assuming $\pmb X$ is fixed), we can multiply and divide by it.
+
+Putting it all together, the expression factors exactly as:
+
+$$
+     |\pmb Q |^{\frac 12} \tau^{\frac p2} \exp \Big ( -\frac \tau 2(\pmb \beta - \hat {\pmb \beta} )^\top \pmb Q(\pmb \beta -  \hat {\pmb \beta} ) \Big ) \times \tau^{\frac{n-p}2 -1} \exp \Big (-\frac \tau 2 \hat {\pmb \varepsilon} ^\top \hat{\pmb \varepsilon}\Big ) 
+$$
+
+We can now identify the resulting kernels:
+
+\begin{itemize}
+    \item $|\pmb Q |^{\frac 12} \tau^{\frac p2} \exp \Big ( -\frac \tau 2(\pmb \beta - \hat {\pmb \beta} )^\top \pmb Q(\pmb \beta -  \hat {\pmb \beta} ) \Big )$ is the kernel of a Multivariate Normal distribution
+$$
+\beta | \tau, y \sim \mathcal N (\hat \beta, (\tau \pmb Q)^{-1})
+$$
+
+\item $\tau^{\frac{n-p}2 -1} \exp \Big (-\frac \tau 2 \hat {\pmb \varepsilon} ^\top \hat{\pmb \varepsilon}\Big )$ is the kernel of a Gamma distribution:
+$$
+\tau | y \sim \text{Gamma}\Big ( a = \frac{n-p}2, b=\frac{\hat \varepsilon^\top \hat \varepsilon}{2} \Big )
+$$
+\end{itemize}
+
+This factorization allows us to sample from the joint proposal $\pmb Q$, drawing firstly from $\tau '\sim \text{Gamma}(\frac{n-p}{2}, \frac{\hat \varepsilon^\top \hat \varepsilon}{2})$ and then, given $\tau '$, drawing $\beta '\sim \mathcal N(\hat \beta , (\tau ' \pmb Q)^{-1})$.
+
+\subsection{Point e)}
+
+<<point_e, echo=TRUE, eval=FALSE, fig.pos="H", out.width="60%", fig.align="center", fig.height=5, fig.width=6, fig.cap="">>=
+library(mvtnorm)
+
+mh_sampler <- function(y, n_iter = 10000) {
+  n <- length(y)
+  p <- 2
+  
+  y_curr <- y[2:n]
+  X <- cbind(1, y[1:(n-1)])
+  Q <- t(X) %*% X
+  Q_inv <- solve(Q)
+  beta_hat <- Q_inv %*% t(X) %*% y_curr
+  ssr <- sum((y_curr - X %*% beta_hat)^2)
+  
+  samples <- matrix(NA, nrow = n_iter, ncol = 3)
+  colnames(samples) <- c("beta0", "beta1", "tau")
+  acc_count <- 0
+  
+  log_second <- function(b0, b1, tau, y1) {
+    if (abs(b1) >= 1) return(-Inf) # Stationary constraint
+    val <- 0.5 * log(1 - b1^2) - log(1 - b1) - 
+           (tau / 2) * (1 - b1^2) * (y1 - b0 / (1 - b1))^2
+    return(val)
+  }
+  
+  samples[1, ] <- c(beta_hat, 1) 
+  for (i in 2:n_iter) {
+    tau_prop <- rgamma(1, shape = (n - p) / 2, rate = ssr / 2)
+    beta_prop <- rmvnorm(1, mean = beta_hat, sigma = solve(tau_prop * Q))
+    
+    b0_p <- beta_prop[1]; b1_p <- beta_prop[2]
+    b0_c <- samples[i-1, 1]; b1_c <- samples[i-1, 2]; tau_c <- samples[i-1, 3]
+    
+    log_alpha <- log_second(b0_p, b1_p, tau_prop, y[1]) - 
+                 log_second(b0_c, b1_c, tau_c, y[1])
+    
+    if (log(runif(1)) < log_alpha) {
+      samples[i, ] <- c(b0_p, b1_p, tau_prop)
+      acc_count <- acc_count + 1
+    } else {
+      samples[i, ] <- samples[i-1, ]
+    }
+  }
+  
+  cat("Overall Acceptance Rate:", acc_count / (n_iter - 1), "\n")
+  return(samples)
+}
+
+@
+
+\begin{lstlisting}
+Overall Acceptance Rate: 0.9247925 
+\end{lstlisting}
+
+<<point_e2, echo=TRUE, eval=FALSE, fig.pos="H", out.width="60%", fig.align="center", fig.height=5, fig.width=6, fig.cap="">>=
+res_mcmc <-  mcmc(res)
+plot(res_mcmc)
+@
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{assets/trace and density plots p3.png}
+    \caption{Trace and density plots for MH sampler ignoring censoring with proposal (*)}
+    \label{fig:trace_density_ignoring_censoring}
+\end{figure}
+
+<<point_e3, echo=TRUE, eval=FALSE, fig.pos="H", out.width="60%", fig.align="center", fig.height=5, fig.width=6, fig.cap="">>=
+autocorr.plot(res_chain)
+@
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{assets/autocorrelationp3p3.png}
+    \caption{Autocorrelation plot for MH sampler ignoring censoring with proposal (*)}
+    \label{fig:autocorrelation:p3p3}
+\end{figure}
+
+<<point_e4, echo=TRUE, eval=FALSE, fig.pos="H", out.width="60%", fig.align="center", fig.height=5, fig.width=6, fig.cap="">>=
+effectiveSize(res_mcmc)
+@
+
+\begin{lstlisting}
+beta0    beta1      tau 
+7491.182 7676.655 8632.981 
+\end{lstlisting}
+
+Ignoring censoring, $(*)$ is a very good proposal: the high observed acceptance rate of 92.8\% is a direct consequence of the efficiency of our Metropolis-Hastings sampler. As derived in Equation \ref{p3pb_likelihood}, $Q(\pmb \beta, \tau | \pmb y)$ corresponds to the likelihood of the transition steps from $t=2$ to $n$. 
+Consequently, the proposal is nearly identical to the full target posterior $\pi(\pmb \beta, \tau | \pmb y)$, differing only by the marginal likelihood contribution of the first observation $y_1$ and the prior structure.
+
+This theoretical efficiency is empirically confirmed by the rapid convergence of the chain. Trace and density plots \ref{fig:trace_density_ignoring_censoring} show a "fuzzy caterpillar" appearance and unimodal, symmetric distributions, indicating that the sampler has successfully reached the stationary distribution. Furthermore, the autocorrelation decays fastly toward zero, falling within the 95\% confidence intervals and the $\pm 0.1$ threshold within fewer than 40 lags. 
+The reliability of the posterior inference is ultimately justified by the high Effective Sample Sizes (ESS), exceeding 7,400 for all parameters.
+
+
+
+\subsection{Point f)}
+For a first order autoregressive process $y_t-\mu = \phi (y_{t-1}-\mu) +\varepsilon_t$, the joint distribution of any three consecutive observations can be expressed via its precision matrix Q:
+$$
+    \begin{bmatrix}
+        y_{j-1}\\ y_j \\ y_{j+1}
+    \end{bmatrix}
+    \sim\mathcal N \begin{pmatrix}\mu \pmb 1, \tau^{{-1}} \begin{bmatrix}
+        1 & -\phi & 0\\
+        -\phi & 1+\phi^2 & -\phi \\ 
+        0 & -\phi &  1
+    \end{bmatrix}^{-1}\end{pmatrix}
+$$
+
+For a multivariate Normal vector $\pmb y \sim \mathcal N (\pmb \mu, \pmb Q^{-1})$, the conditional distribution of a single component $y_j$ given all other components $\pmb y_{-j}$ is also Normal:
+$$
+    y_j |\pmb y_{-j} \sim \mathcal N \begin{pmatrix}
+        \mu_j -\frac{1}{Q_{jj}} \sum_{k\neq j} Q_{jk} (y_k-\mu_k ), \frac 1{Q_{jj}}
+    \end{pmatrix}
+$$
+
+We now extract the relevant term from the precision matrix $\pmb Q$ to find the conditional parameters for $y_j$.
+
+The diagonal element corresponding to $y_j$ is $Q_{jj} = \tau (1+\phi^2)$. Therefore, the conditional variance is the inverse of this precision:
+$$
+    \text{Var} (y_j| \pmb y_{-j} ) = \frac 1{\tau (1+\phi^2)} = \frac{\tau^{-1}}{1+\phi^2}
+$$
+
+The non-zero off-diagonal elements in the $j$-th row of $\pmb Q$ are $Q_{j,j-1} = -\tau \phi$ and $Q_{j,j+1}=-\tau \phi$.
+Plugging these into the formula for the conditional mean:
+\begin{align*}
+    \mathbb E[y_j | \pmb y_{-j}] & = \mu - \frac{1}{\tau (1+\phi ^2)}\Big [Q_{j,j-1}(y_{j-1}-\mu)+ Q_{j,j+1}(y_{j+1}-\mu)\Big ] = \\ &=  \mu - \frac{1}{\tau (1+\phi ^2)}\Big [ -\tau \phi (y_{j-1}-\mu) -\tau \phi (y_{j+1}-\mu)\Big ] = \\
+    & =  \mu + \frac{\tau \phi }{\tau (1+\phi ^2)}\Big [(y_{j-1}-\mu) + (y_{j+1}-\mu)\Big ] = \\
+    & =  \mu + \frac{\phi }{1+\phi ^2}(y_{j-1}+y_{j+1}-2\mu)
+\end{align*}
+
+Eventually combining the results, we obtain the required conditional distribution:
+$$
+    y_j | \pmb y_{-j}, \pmb \beta, \tau \sim \mathcal N\begin{pmatrix}
+        \mu+\frac{\phi}{1+\phi^2}(y_{j-1}+y_{j+1} -2\mu), \frac{\tau^{-1}}{1+\phi^2}
+    \end{pmatrix}
+$$
+
+
+\subsubsection{Density of $y_j$ conditioned on the data}
+
+The density of $y_j$ conditioned on $\pmb y_{−j},\pmb \delta,\pmb z,\pmb \beta,\tau$ is a truncated normal distribution if the observation is censored and a point mass if it is observed.
+
+Letting $\mu_{cond} = \mu + \frac{\phi}{1+\phi^2}(y_{j-1} + y_{j+1} - 2\mu)$ and $\sigma^2_{cond} = \frac{1}{\tau(1+\phi^2)}$, 
+
+\begin{itemize}
+    \item If $\delta_j = 1$ (Observed): The true value is known, and thus the density is a Dirac delta function centered at $z_j$:
+    $$
+        p(y_j \mid \pmb y_{-j}, \pmb \delta, \pmb z, \pmb \beta, \tau) = \delta(y_j - z_j)
+    $$
+    
+    \item If $\delta_j = 0$ (Right-Censored), then $y_t > z_t$. Therefore, the density is the AR(1) conditional Normal density from Point f, truncated to the interval $(z_j, \infty)$:
+    $$
+        p(y_j \mid \pmb y_{-j}, \delta_j=0, z_j, \pmb \beta, \tau) = \frac{\mathcal{N}(y_j \mid \mu_{cond}, \sigma^2_{cond})}{\int_{z_j}^{\infty} \mathcal{N}(u \mid \mu_{cond}, \sigma^2_{cond}) du} \cdot \mathbb{I}(y_j > z_j)
+    $$
+\end{itemize}
+
+\subsection{Point g)}
+
+\begin{rcodebox}
+    
+<<point_g, echo=TRUE, eval=FALSE, fig.pos="H", out.width="60%", fig.align="center", fig.height=5, fig.width=6, fig.cap="">>=
+
+library(mvtnorm)
+library(truncnorm)
+library(coda)
+
+gibbs_censored_ar1 <- function(clouds, n_iter = 20000) {
+  z <- clouds$z
+  delta <- clouds$delta
+  n <- length(z)
+  p <- 2
+  
+  y_curr <- z
+  y_curr[delta == 0] <- z[delta == 0] + 0.5
+  
+  samples <- matrix(NA, nrow = n_iter, ncol = 3)
+  colnames(samples) <- c("beta0", "beta1", "tau")
+  
+  curr_params <- c(0.1, 0.5, 1)
+  acc_count <- 0
+  
+  log_H <- function(b0, b1, tau, y1) {
+    if (abs(b1) >= 1) return(-Inf)
+    0.5 * log(1 - b1^2) - log(1 - b1) - 
+    (tau / 2) * (1 - b1^2) * (y1 - b0 / (1 - b1))^2
+  }
+  
+  for (i in 1:n_iter) {
+    
+    y_reg <- y_curr[2:n]
+    X <- cbind(1, y_curr[1:(n-1)])
+    Q <- t(X) %*% X
+    beta_hat <- solve(Q) %*% t(X) %*% y_reg
+    ssr <- sum((y_reg - X %*% beta_hat)^2)
+    
+    tau_prop <- rgamma(1, shape = (n - p) / 2, rate = ssr / 2)
+    beta_prop <- as.vector(rmvnorm(1, mean = beta_hat, sigma = solve(tau_prop * Q)))
+    
+    log_alpha <- log_H(beta_prop[1], beta_prop[2], tau_prop, y_curr[1]) - 
+                 log_H(curr_params[1], curr_params[2], curr_params[3], y_curr[1])
+    
+    if (log(runif(1)) < log_alpha) {
+      curr_params <- c(beta_prop, tau_prop)
+      acc_count <- acc_count + 1
+    }
+    samples[i, ] <- curr_params
+    
+    mu <- curr_params[1] / (1 - curr_params[2])
+    phi <- curr_params[2]
+    tau <- curr_params[3]
+    cond_sd <- sqrt(1 / (tau * (1 + phi^2)))
+    
+    cens_idx <- which(delta == 0)
+    interior_cens <- cens_idx[cens_idx > 1 & cens_idx < n]
+    
+    for (j in interior_cens) {
+      cond_mean <- mu + (phi / (1 + phi^2)) * (y_curr[j-1] + y_curr[j+1] - 2 * mu)
+      y_curr[j] <- rtruncnorm(1, a = z[j], b = Inf, mean = cond_mean, sd = cond_sd)
+    }
+  }
+  
+  cat("Parameter Acceptance Rate:", acc_count / n_iter, "\n")
+  return(list(mcmc_res = mcmc(samples), final_y = y_curr))
+}
+
+results <- gibbs_censored_ar1(clouds, n_iter = 25000)
+
+res_chain <- results$mcmc_res
+final_y   <- results$final_y
+
+summary(res_chain)
+plot(res_chain)
+autocorr.plot(res_chain)
+plot(final_y, type = "l", col = "blue", lwd = 1,
+     main = "Realisation of Cloud Heights",
+     xlab = "Time (Hours)", ylab = "log(Cloud Ceiling Height)")
+lines(clouds$z, col = "gray", lwd = 2)
+legend("topright", legend = c("Imputed Latent y", "Observed/Censored Limit"), 
+       col = c("blue", "gray"), lty = 1, lwd = c(1, 2), bty = "n")
+@
+
+\begin{lstlisting}
+Parameter Acceptance Rate: 0.9072 
+\end{lstlisting}
+
+Summary:
+
+\begin{lstlisting}
+Iterations = 1:25000
+Thinning interval = 1 
+Number of chains = 1 
+Sample size per chain = 25000 
+
+1. Empirical mean and standard deviation for each variable,
+   plus standard error of the mean:
+
+        Mean      SD  Naive SE Time-series SE
+beta0 0.5292 0.10741 0.0006793      0.0024238
+beta1 0.8799 0.02342 0.0001481      0.0006167
+tau   0.9414 0.06834 0.0004322      0.0009919
+
+2. Quantiles for each variable:
+
+        2.5%    25%    50%    75%  97.5%
+beta0 0.3233 0.4550 0.5279 0.6017 0.7428
+beta1 0.8327 0.8644 0.8803 0.8959 0.9243
+tau   0.8126 0.8943 0.9396 0.9860 1.0801
+
+\end{lstlisting}\label{p3g3_summary}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{assets/Problem3-pointG.png}
+    \caption{Trace and density plots}
+    \label{fig:p3pg_trace_density}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{assets/Problem3-pointG2.png}
+    \caption{Autocorrelation plot}
+    \label{fig:p3pg_autocorrelation}
+\end{figure}
+
+<<point_g_4, echo=TRUE, eval=FALSE, fig.pos="H", out.width="60%", fig.align="center", fig.height=5, fig.width=6, fig.cap="">>=
+effectiveSize(res_chain)
+@
+
+\begin{lstlisting}
+beta0    beta1      tau 
+1963.546 1441.904 4747.031
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{assets/cloud_heights_realization.png}
+    \caption{Realisation of Cloud Heights (Accounting for Censoring)}
+    \label{fig:p3pg_realzation}
+\end{figure}
+
+The Metropolis-Hastings independence sampler achieved a high acceptance rate of 90.7\%, indicating that the proposal distribution derived from the conditional likelihood of the AR(1) process is a good approximation of the true posterior distribution. 
+
+From the summary \ref{p3g3_summary}, we can see that posterior mean for the autoregressive parameter $\beta_1$ is approximately 0.88 (95\% CI: $[0.83, 0.92]$), confirming that the cloud height process is highly persistent but stationary, as the entire credible interval remains below 1.
+
+In \ref{fig:p3pg_trace_density}, the trace plots show stable "fuzzy caterpillar" behavior, and the density plots are unimodal and symmetric, suggesting that the chain has converged to the stationary distribution. The effective sample size for $\beta_1$ ($\sim$ 1,442) is lower than for the precision $\tau$ ($\sim$ 4,747) due to the inherent autocorrelation of the AR(1) structure and the data augmentation step. 
+
+Finally, the realization plot \ref{fig:p3pg_realzation} illustrates that the Gibbs sampler successfully imputes latent cloud heights $(\pmb y)$ that respect the censoring threshold $(\pmb z)$ while maintaining the temporal continuity of the underlying process.
+
+\section{Problem 4}
+\subsection{Point a)}
+We first state the definition of identifiable statistical model.
+\begin{definition}[Identifiable statistical model]
+    Let $\mathcal{P} = \{P_{\theta}: \theta \in \Theta\}$ be a statistical model with parameter space $\Theta$. We say that $\mathcal{P}$ is identifiable if the mapping $\theta \mapsto P_{\theta}$ is bijective:
+    $$P_{\theta_1} = P_{\theta_2} \implies \theta_1 = \theta_2 \quad \text{for all } \theta_1,\theta_2 \in \Theta.$$
+\end{definition}
+As we want to prove the non-identifiability, we are looking fo two distinct values of $\theta$ that correspond to the same probability distribution, or in other words we are looking for a different combinations of parameters that lead to exactly the same distribution of data $y$. 
+
+\vspace{12pt}
+\noindent The model is non-identifiable because multiple combinations of the parameters $c$ and $K$ result in the same marginal likelihood for the observed data $y$. The parameters $c$ and $K$ are redundant. 
+
+\vspace{12pt}
+\noindent In equation (2) in exercise, the observation mean is defined as $c e^{u_t}$. If we define transformation $u_t' = u_t + \alpha$ for $\alpha \in \mathbb{R}$ and therefore shift the latent state by a constant $\alpha$, the observation mean becomes $c e^{u_t' - \alpha} = (c e^{-\alpha})e^{u_t'}$. We also look at the state transition in equation (1). Substituting $u_t = u_t' - \alpha$, we get:
+$$u_t' = u_{t - 1}' + r \left(1 - \left(\frac{e^{u_{t-1}'}}{K e^{\alpha}}\right)^{\theta}\right) + e_t.$$
+The model with parameters $(c,K)$ is mathematically indistinguishable from a model with $(c e^{-\alpha}, K e^{\alpha})$. Because the likelihood depends only on the product $c \cdot K$, we cannot estimate them individually. To make the model identifiable, we need to fix the ratio between $c$ and $K$ which we accomplish by fixing the sampling effort to $c = 1$. This anchors the scale of $k$ and $u_t$, relative to the observed counts $y_t$. The model space has not changed because the transformation we performed is a reparameterization that results in an observationally equivalent model.
+
+
+\subsection{Point b)}
+We write the R function computing $g(u, \theta) = -\log{(f(y,u|\theta))}$ as proposed in Introduction to RTMB and use the MakeADFun to generate obj containing the Laplace approximation of the marginal likelihood, and its gradient.
+<<problem4b, fig.width=5, fig.height=4, eval =FALSE, out.width='0.7\\textwidth'>>=
+f <- function(parms) {
+  getAll(parms, dat)
+  r <- exp(log_r)
+  theta <- exp(log_theta)
+  sigma <- exp(log_sigma)
+  
+  u_prev <- u[-length(u)]
+  u_curr <- u[-1]
+  
+  # Log-space calculation to prevent overflow/NaN
+  phi <- exp(theta * (u_prev - log_K))
+  mu <- u_prev + r * (1 - phi)
+  
+  nll <- -sum(dnorm(u_curr, mu, sigma, TRUE))
+  nll <- nll - sum(dpois(y, exp(u), TRUE))
+  
+  ADREPORT(u)
+  ADREPORT(exp(u))
+  return(nll)
+}
+
+dat <- list(y = y)
+parms <- list(
+  log_r = log(0.2), 
+  log_K = log(mean(y)), 
+  log_theta = log(1), 
+  log_sigma = log(0.1),
+  u = log(y + 1)
+)
+
+obj <- MakeADFun(f, parms, random = "u")
+@
+
+\subsection{Point c)}
+Our goal is to estimate parameter $\theta$ with maximization of marginal likelihood $L(\theta) = \int_{\mathbb{R}^n} (f(y,u|\theta))du = \int_{\mathbb{R}^n} \exp{(-g(y,u|\theta))du$ using RTMB. RTMB uses Laplace approximation and solves the problem of integral not having analitical solution, which is the case with theta-logistical model. First, the algorithm for given $\theta$ finds $\hat{u}$ that minimizes $g(u|\theta)$. It calculates the Hessian matrix of second order partial derivatives of function $g$ over $u$ in point $\hat{u}$. Then the method approximates the integral using a second-order Taylor expansion of g around $\hat{u}$. We solve this point using R and code from previous point:
+<<problem4c2, fig.width=5, fig.height=4, eval =FALSE, out.width='0.7\\textwidth'>>=
+opt <- nlminb(obj$par, obj$fn, obj$gr)
+sdr <- sdreport(obj)
+view(opt)
+
+rep_sum <- summary(sdr, "report")
+u_est <- rep_sum[rownames(rep_sum) == "u", 1]
+u_se  <- rep_sum[rownames(rep_sum) == "u", 2]
+exp_u_est <- rep_sum[rownames(rep_sum) == "exp(u)", 1]
+
+par(mfrow = c(2, 1), mar = c(4, 4, 2, 1))
+
+plot(u_est, type = "l", col = "blue", lwd = 2, \\
+    ylim = range(u_est - 2*u_se, u_est + 2*u_se),
+     xlab = "Time", ylab = "u_t (Log-density)", main = "Estimated Latent States")
+lines(u_est + 2*u_se, lty = 2, col = "blue")
+lines(u_est - 2*u_se, lty = 2, col = "blue")
+
+plot(y, pch = 16, col = "gray", xlab = "Time", ylab = "Density / Counts",\\ 
+     main = "Comparison: exp(u_t) vs Observations y_t")
+lines(exp_u_est, col = "firebrick", lwd = 2)
+legend("topright", legend = c("Observed y", "Estimated exp(u)"), 
+       col = c("gray", "firebrick"), pch = c(16, NA), lty = c(NA, 1))
+@
+
+\vspace{12pt}
+\noindent We find optimal parameters to be $\log{r} = -2.4128980, \log{K} = 3.7896930, \log{\theta}=0.6314122$ and $\log{\sigma} = -1.1023960$.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{Project2-problem4c.png}
+    \caption{Estimated values and observations}
+    \label{figure4c}
+\end{figure}
+
+\vspace{12pt}
+\noindent On first graph, we ploted estimated values of $u_t$ with margins of standard error. On second graph, we compare the estimated values of $e^{u_t}$ with the observations $y_t$ by plotting them on the same graph. We see that the estimated values fit the observations $y_t$ very well, also at the peaks.
+
+\subsection{Point d)}
+We write the function in R and use the parameters calculated in point c. We then calculate both estimated error and standard error reported by sdreport. We compute the error as the absolute difference between the maximum likelihood approximations from part c and estimations from this part. Sdreport errors are computed using R function: 
+
+<<problem4d, fig.width=5, fig.height=4, eval =FALSE, out.width='0.7\\textwidth'>>=
+sim_theta <- function(n, r, K, theta, sigma) {
+  u <- numeric(n)
+  u[1] <- log(K)
+  for(t in 2:n) {
+    u[t] <- u[t-1] + r * (1 - (exp(u[t-1])/K)^theta) + rnorm(1, 0, sigma)
+  }
+  return(list(y = rpois(n, exp(u)), u = u))
+}
+
+set.seed(42)
+r_true <- exp(opt$par[1])
+K_true <- exp(opt$par[2])
+theta_true <- exp(opt$par[3])
+sigma_true <- exp(opt$par[4])
+
+sim_dat <- sim_theta(length(y), r_true,K_true, theta_true, sigma_true)
+dat$y <- sim_dat$y
+obj_sim <- MakeADFun(f, parms, random = "u")
+opt_sim <- nlminb(obj_sim$par, obj_sim$fn, obj_sim$gr)
+sdr_sim <- sdreport(obj_sim)
+
+print(summary(sdreport(obj_sim), "fixed"))
+
+est_sim <- summary(sdr_sim, "fixed")
+comparison <- data.frame(
+  True_Log_Param = opt$par,
+  Estimated = est_sim[, 1],
+  Error = abs(opt$par - est_sim[, 1]),
+  StdError = est_sim[, 2]
+)
+print(comparison)
+@
+
+\noindent We compare errors in the table below and see that differ a bit:
+
+\begin{center}
+\begin{tabular}{ |c|c|c|c|c| } 
+\hline
+Parameter & Laplace approximation in c & Estimated value & Error & Sdreport error \\
+\hline
+$\log{r}$ & -2.4128980 &-2.9954105 &0.58251248 &0.72319686\\ 
+$\log{K}$& 3.7896930  &3.8076526 &0.01795960 &0.21515674\\ 
+$\log{\theta}$& 0.6314122 &0.9538935 &0.32248137 &0.32403803\\ 
+$\log{\sigma}$ &-1.1023960 &-1.1464595 &0.04406347 &0.07543574\\
+\hline
+\end{tabular}
+\end{center}
+
+\noindent The standard errors provided by sdreport are calculated using inverse Hessian and delta method. 
+
+\vspace{12pt}
+\noindent Inverse Hessian (Fisher Information): For the fixed parameters ($\theta$), RTMB calculates the Hessian matrix of the marginal negative log-likelihood at the MLE. The covariance matrix is the inverse of this Hessian. A "sharper" peak in the likelihood surface results in a larger Hessian and, consequently, a smaller standard error.
+
+\vspace{12pt}
+\noindent The Delta Method: For reported quantities like $\exp{(u_t)}$, the uncertainty is propagated from the log-scale to the natural scale using a first-order Taylor expansion. If $Var(u)=\sigma^2$, then $Var(e^u) \approx {(e^u)}^2 \sigma^2$.
+
+\end{document}

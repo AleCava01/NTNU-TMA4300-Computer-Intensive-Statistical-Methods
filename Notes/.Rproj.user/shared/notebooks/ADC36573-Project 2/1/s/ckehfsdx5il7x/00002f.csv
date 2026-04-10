@@ -1,1 +1,0 @@
-"0","plot(res_mcmc$tau, type=""l"", col=""firebrick"", main=""Trace Plot: tau"", ylab=""Value"")"

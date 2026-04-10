@@ -1,3 +1,0 @@
-"0",""
-"0","# 2D Gaussian Random Fields"
-"0","image(x, y, Zmat1, main = expression(""2D Gaussian Random Field, "" ~ nu == 1))"

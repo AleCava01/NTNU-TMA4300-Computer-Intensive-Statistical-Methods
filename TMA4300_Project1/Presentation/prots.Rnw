@@ -1,0 +1,169 @@
+% Define global colors
+<<piut>>=
+primary     <- "#88498f"
+secondary   <- "#779fa1"
+tertiary    <- "#e0cba8"
+quaternary  <- "#ff6542"
+quinary     <- "#564154"
+@
+
+<<prroblem1a2, fig.width=5, fig.height=4, out.width='0.7\\textwidth', fig.align='center'>>=
+plotcauchyzoom <- function(x, primary = "blue", secondary = "lightgray") {
+  # Exclude extreme outliers for visualization
+  hist(
+    x[x > -10 & x < 10], 
+    breaks = seq(-10, 10, length.out = 100),
+    probability = TRUE,
+    main = "Cauchy Samples (Zoomed) vs Theoretical Density",
+    xlab = "x",
+    col = secondary,
+    border = "white"
+  )
+  
+  # Overlay theoretical density
+  curve(
+    dcauchy(x), 
+    from = -10, to = 10, 
+    col = primary, lwd = 2, add = TRUE
+  )
+  
+  # Add grid
+  grid(lty = 2, col = "gray", lwd = 1)
+}
+
+plotcumulativemean <- function(cummean){
+    plot(1:length(x), cummean(x), type="l",
+         main="Cumulative mean vs n",
+         col = primary,
+         lwd = 2,
+         xlab="n",
+         ylab=expression(bar(X)[1/n]))
+    grid(lty = 2, col = "gray", lwd = 1)
+    x.mean <- mean(x)
+    abline(h = x.mean, col = secondary, lwd = 2, lty = 2)
+    text(x = length(x)*0.4,
+         y = x.mean,
+         labels = paste("Global mean =", round(x.mean, 2)), 
+         pos = 1,
+         col = secondary, 
+         cex = 0.8)
+}
+
+rtrunchistbinom <- function(x){
+    hist(
+      x,
+      breaks = seq(-0.5, 10.5, by = 1),
+      prob = TRUE,
+      col = secondary,
+      border = "white",
+      main = "Truncated Binomial(20, 0.5), b = 10",
+      xlab = "x"
+    )
+    k <- 0:10
+    
+    pmf.trunc <- dbinom(k, size = 20, prob = 0.5) /
+      pbinom(10, size = 20, prob = 0.5)
+    lines(k, pmf.trunc, col = primary, lwd = 2)
+    
+}
+
+rtrunchistnorm <- function(x){
+    hist(x, breaks = 30, prob = TRUE, col = secondary, border = "white", 
+    main = "Truncated Normal(0,1), [-1,2]", xlab = "x")
+    x.grid <- seq(-1, 2, length.out = 200)
+    dens.trunc <- dnorm(x.grid, mean = 0, sd = 1) /
+      (pnorm(2, mean = 0, sd = 1) - pnorm(-1, mean = 0, sd = 1))
+    lines(x.grid, dens.trunc, col = primary, lwd = 2)
+}
+
+rtrunchistexp <- function(x) {
+    hist(x, breaks = 30, prob = TRUE, col = secondary, border = "white", 
+    main = "Truncated Exponential(rate = 1), [0.5,3]", xlab = "x")
+    
+    x.grid <- seq(0.5, 3, length.out = 200)
+    dens.trunc <- dexp(x.grid, rate = 1) /
+      (pexp(3, rate = 1) - pexp(0.5, rate = 1))
+    lines(x.grid, dens.trunc, col = primary, lwd = 2)
+}
+
+scatterplotdisk <- function(samples, rho, delta){
+    # Disk (support) boundary
+    t <- seq(0, 2 * pi, length.out = 400)
+    x.circle <- delta + rho * cos(t)
+    y.circle <- rho * sin(t)
+    
+    plot(samples[, 1], samples[, 2], xlab = "x1", ylab = "x2", 
+     main = "Scatter plot of bnormsampler samples", pch = 19, col = secondary,
+     xlim = c(delta - rho, delta + rho), ylim = c(-rho, rho), asp = 1)
+    lines(x.circle, y.circle, col = primary, lwd = 2)
+    abline(h = 0, v = 0, col = "black", lwd = 1)
+    abline(v = delta, col = "red", lwd = 2, lty = 2)
+
+    grid()
+    
+}
+
+gbnormamplerplotter <- function(samples, mean1, mean2, rho, c1, c2){
+    t <- seq(0, 2 * pi, length.out = 400)
+    x.circle <- c1 + rho * cos(t)
+    y.circle <- c2 + rho * sin(t)
+    plot(samples[, 1], samples[, 2], xlab = "x1", ylab = "x2",
+         main = paste0("Truncated bivariate normal 
+    mean=(",mean1,",",mean2,"), c=(",c1,",",c2,")"),
+         pch = 19, col = secondary, xlim = c(-5,8), ylim = c(-5,8),asp = 1)
+    abline(h = 0, v = 0, col = "black", lwd = 1)
+    lines(x.circle, y.circle, col = primary, lwd = 2)
+    points(mean1, mean2, pch = 4, col = primary, lwd = 2)
+    grid()
+}
+
+plotMarginal2D <- function(X,
+                            scattermain = "Scatter plot of gauss copula",
+                            scatterxlab = "U1",
+                            scatterylab = "U2",
+                            histcol = secondary,
+                            pointcol = "black",
+                            bgcol = adjustcolor(secondary, alpha.f = 0.6),
+                            cex = 0.5) {
+  
+  # Compute means
+  meanX1 <- mean(X[1,])
+  meanX2 <- mean(X[2,])
+  
+  # Layout: scatter plot left, histograms right
+  layout(matrix(c(1,2,
+                  1,3),
+                nrow = 2, byrow = TRUE))
+  
+  # Scatter plot
+  plot(X[1,], X[2,],
+       pch = 21,
+       bg  = bgcol,
+       col = pointcol,
+       cex = cex,
+       xlab = scatterxlab,
+       ylab = scatterylab,
+       main = scattermain)
+  
+  abline(h = 0, v = 0, col = "black", lwd = 1)        # origin lines
+  abline(h = meanX2, v = meanX1, col = "red", lwd = 2, lty = 2)  # dotted mean lines
+  grid()
+  
+  # Histograms with mean indication
+  hist(X[1,], main = scatterxlab, xlab = "", col = histcol)
+  abline(v = meanX1, col = "red", lwd = 2, lty = 2)  # dotted
+  
+  hist(X[2,], main = scatterylab, xlab = "", col = histcol)
+  abline(v = meanX2, col = "red", lwd = 2, lty = 2)  # dotted
+}
+
+adjustedcorrplot <- function(n_seq, gamma_mc, adj_corr){
+    plot(n_seq, gamma_mc, type = "l", col = tertiary, lwd = 2,
+     xlab = "n", ylab = "Correlation", ylim = range(c(gamma_mc, adj_corr, truecorr)))
+    lines(n_seq, adj_corr, col = secondary, lwd = 2)
+    abline(h = truecorr, col = primary, lty = 2, lwd = 2)
+    
+    legend("bottomright", legend = c("gamma_mc", "adj_corr", "truecorr"),
+           col = c(tertiary, secondary, primary), lty = c(1,1,2), lwd = 2)
+}
+@

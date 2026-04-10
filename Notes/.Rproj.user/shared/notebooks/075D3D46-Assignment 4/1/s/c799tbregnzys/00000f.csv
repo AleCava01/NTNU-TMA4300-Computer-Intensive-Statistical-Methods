@@ -1,6 +1,0 @@
-"0","rm(list = ls()) # clear all variables"
-"0",""
-"0","# import libraries"
-"0","library(readr)"
-"0","library(GGally)"
-"0","library(ggplot2)"

@@ -1,1 +1,0 @@
-"0","plot(res_mcmc$beta1, type=""l"", col=""darkgreen"", main=""Trace Plot: beta1"", ylab=""Value"")"
