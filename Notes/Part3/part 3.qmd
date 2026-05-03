@@ -1,0 +1,71 @@
+---
+title: "Bootstrapping and the EM-algorithm"
+author: "Alessandro Cavalieri"
+date: "2026-05-02"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float:
+      collapsed: false
+---
+
+<style>
+:root {
+  --example-color: #2e7d32; /* Define your variable here (e.g., a forest green) */
+}
+
+.example-block {
+  color: var(--example-color);
+  border-left: 4px solid var(--example-color);
+  padding-left: 15px;
+  margin: 20px 0;
+  font-style: italic;
+}
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Bootstrapping
+
+Bootstrapping in statistics is a resampling technique used to estimate the distribution of a statistic (like a mean, median, or regression coefficient) by repeatedly sampling from the data we already have.
+
+**Core Idea**:
+
+Instead of collecting new data (which can be expensive or impossible), you:
+
+1. Take your original dataset of size n
+2. Randomly sample n observations with **replacement** (this is key)
+   - *Replacement* means that the same observation can appear multiple times and some observations may not appear at all.
+3. Compute the statistic of interest (e.g., the mean)
+4. Repeat this many times (often thousands)
+5. Use the resulting distribution of those computed statistics to draw conclusions
+
+:::{.callout-tip}
+### Simple example
+
+Suppose you have 10 observations and want to estimate the mean’s uncertainty:
+
+- You resample those 10 values (with replacement) 1,000 times
+- Compute the mean for each resample
+- Now you have 1,000 “bootstrapped means”
+- The spread of these gives you an estimate of variability and confidence intervals
+:::
+
+**Non-parametric bootstrapping**
+is the standard form of bootstrapping where you don’t assume any specific distribution for your data (like normal, exponential, etc.).
+
+:::{.callout-tip}
+Imagine your dataset is:
+
+[2, 4, 5, 7, 9]
+
+Non-parametric bootstrapping treats this as a “mini population.”
+A resample might look like:
+
+[4, 4, 7, 2, 9]
+
+No assumptions—just reshuffling with repetition.
+:::
