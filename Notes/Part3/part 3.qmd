@@ -2,8 +2,7 @@
 title: "Bootstrapping and the EM-algorithm"
 author: "Alessandro Cavalieri"
 date: "2026-05-02"
-output: 
-  pdf_document
+format: pdf
 ---
 
 <style>
@@ -216,11 +215,11 @@ Per ogni campione simulato, ricalcoliamo il parametro con lo stesso metodo (es. 
 3. Compute empirical $\alpha/2$ and $1-\alpha/2$ quantiles of $\hat \theta^{(b)}, \hat \theta_{\alpha/2}^{(b)}, \ \hat \theta_{1-\alpha/2}^{(b)}$
 **Justification**: valid if a strictly increasing transformation $\phi(\theta)$ exists, such that $\phi(\hat \theta)-\phi(\theta)$ has cdf $H(z)=1-H(-z)$.
 Then:
+
 $$
-\begin{equation}
 \mathbb P\Big(h_{\alpha/2} \leq \phi (\hat \theta) -\phi(\theta) \leq h_{1-\alpha/2}\Big) = 1-\alpha
-\end{equation}
 $$ {#eq-ci}
+
 where $h_\alpha= H ^{-1}(\alpha)$.
 
 Given an existing implicit $\phi$, bootstrap replicates of $\phi(\hat \theta)-\phi(\theta)$ are given by $\phi(\hat \theta^{(b)})-\phi(\hat \theta)$
