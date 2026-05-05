@@ -69,3 +69,70 @@ A resample might look like:
 
 No assumptions—just reshuffling with repetition.
 :::
+
+## Bootstrap confidence intervals
+
+### Percentile method
+
+1. Generate $X_1, X_2, \dots , X_B \overset{\text{iid}}{\sim} \hat F$
+2. Compute $\hat \theta_1, \hat \theta_2, \dots, \hat \theta_B$
+3. Compute empirical $\alpha/2$ and $1-\alpha/2$ quantiles of $\hat \theta^{(b)}, \hat \theta_{\alpha/2}^{(b)}, \ \hat \theta_{1-\alpha/2}^{(b)}$
+**Justification**: valid if a strictly increasing transformation $\phi(\theta)$ exists, such that $\phi(\hat \theta)-\phi(\theta)$ has cdf $H(z)=1-H(-z)$.
+Then:
+$$
+\begin{equation}
+\mathbb P\Big(h_{\alpha/2} \leq \phi (\hat \theta) -\phi(\theta) \leq h_{1-\alpha/2}\Big) = 1-\alpha
+\end{equation}
+$$ {#eq-ci}
+where $h_\alpha= H ^{-1}(\alpha)$.
+
+Given an existing implicit $\phi$, bootstrap replicates of $\phi(\hat \theta)-\phi(\theta)$ are given by $\phi(\hat \theta^{(b)})-\phi(\hat \theta)$
+satisfying
+$$
+\mathbb P\Big(h_{\alpha/2} \leq \phi(\hat \theta^{(b)})-\phi(\hat \theta)\leq h_{1-\alpha/2}\Big) \simeq 1-\alpha
+$$
+and so:
+$$
+\mathbb P\Big (\underbrace{\phi^{-1}(h_{\alpha/2} + \phi (\hat \theta)) }_{\hat \theta^{(b)}_{\alpha/2}} \leq \hat \theta^{(b)} \leq \underbrace{\phi^{-1}(h_{1-\alpha/2} +\phi(\hat \theta)}_{\hat \theta^{(b)}_{1-\alpha/2}} \Big) \simeq 1-\alpha
+$$
+The empirical quantiles $\hat \theta_{\alpha/2}^{(b)}$ and $\hat \theta^{(b)}_{1-\alpha/2}$ of $\hat \theta^{(b)}$ are explicitly known from bootstrap distribution of $\hat \theta^{(b)}$.
+
+From @eq-ci we have:
+$$
+\mathbb P\Big ( -h_{\alpha/2} \geq \phi(\theta)-\phi(\hat \theta) \geq -h_{1-\alpha/2}\Big) = 1-\alpha
+$$
+Since $H(z) = 1-H(-z),\quad h_{\alpha/2} = -h_{1-\alpha/2}$ and so
+$$
+\mathbb P\Big ( h_{\alpha/2} \leq \phi(\theta)-\phi(\hat \theta) \leq h_{1-\alpha/2}\Big) = 1-\alpha
+$$
+and
+$$
+\boxed{
+\mathbb P\Big (\underbrace{\phi^{-1}(\phi(\theta)-h_{\alpha/2})}_{\hat \theta_{\alpha/2}^*} \leq \theta \leq \underbrace{\phi^{-1} (\phi(\hat \theta)-h_{1-\alpha/2})}_{\hat \theta_{1-\alpha/2}^*} \Big) = 1-\alpha
+}
+$$
+Thus, $\Big [\hat \theta_{\alpha/2}^*, \hat \theta^*_{1-\alpha/2}\Big]$ is a confidence interval for $\theta$. Note that $\phi$ and $h_{\alpha/2}, \ h_{1-\alpha/2}$ do not need to be known explicitly!
+
+:::{.callout-tip}
+### Example of failure of percentile method
+
+Suppose $X_1,\dots, X_n \overset{iid}{\sim}\mathcal N(\mu,\sigma^2)$
+It follows that parametric bootstrap replicates of $\frac{\hat \sigma^2(n-1)}{\sigma^2}$, i.e. $\frac{\hat \sigma^{2b}(n-1)}{\hat \sigma^2}\sim \chi^2_{n-1}$ and bootstrap replicates of $\hat \sigma^2$, i.e. $\hat \sigma^{2b} \sim \frac{\hat \sigma^2}{n-1}\chi^2_{n-1}$.
+
+So the percentil-method interval is (un to Monte-Carlo error):
+$$
+\Bigg (\frac{\hat \sigma^2 \chi^2_{\alpha/2,n-1}}{n-1},\frac{\hat \sigma^2\chi^2_{1-\alpha/2,n-1}}{n-1}\Bigg)
+$$
+But the classical exact interval is:
+$$
+\Bigg(\frac{\hat \sigma^2(n-1)}{\chi^2_{1-\alpha/2,n-1}}, \frac{\hat \sigma^2 (n-1)}{\chi^2_{\alpha/2, n-1}}\Bigg)
+$$
+
+- **Why it fails**: The $\chi^2$ distribution is heavily skewed (especially for small $n$). The "Percentile Method" assumes there is a transformation $\phi$ that makes the distribution of $\hat{\sigma}^2$ symmetric. While a log-transform helps, the basic percentile method applied directly to $\hat{\sigma}^2$ ignores the fact that the sampling distribution of the variance is not transformation-respecting in a way that centers it correctly.
+- **The Result**: The percentile interval ends up being "flipped" compared to the pivotal (exact) interval. Specifically, the percentile method uses the quantiles of the bootstrap distribution directly, whereas the exact method uses the reciprocals of the $\chi^2$ quantiles.
+:::
+
+| Method | Formula | Key Assumption |
+| --- | --- | --- |
+| Percentile | $[\hat \theta_{\alpha/2}^{(b)}, \hat \theta_{1-\alpha/2}^{(b)}]$ | Existance of a symmetry-transform $\phi$ |
+| Basic (Pivotal) | $[2\hat \theta - \hat \theta^{(b)}_{1-\alpha/2}, 2\hat \theta -\hat \theta^{(b)}_{\alpha/2}]$ | $\hat \theta - \theta$ is the pivot |
