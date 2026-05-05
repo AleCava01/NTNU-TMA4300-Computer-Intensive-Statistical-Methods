@@ -3,11 +3,7 @@ title: "Bootstrapping and the EM-algorithm"
 author: "Alessandro Cavalieri"
 date: "2026-05-02"
 output: 
-  html_document:
-    toc: true
-    toc_depth: 3
-    toc_float:
-      collapsed: false
+  pdf_document
 ---
 
 <style>
@@ -54,7 +50,8 @@ Suppose you have 10 observations and want to estimate the mean’s uncertainty:
 - The spread of these gives you an estimate of variability and confidence intervals
 :::
 
-**Non-parametric bootstrapping**
+## Non-parametric bootstrapping
+
 is the standard form of bootstrapping where you don’t assume any specific distribution for your data (like normal, exponential, etc.).
 
 :::{.callout-tip}
@@ -69,6 +66,146 @@ A resample might look like:
 
 No assumptions—just reshuffling with repetition.
 :::
+
+**Simplest case**: iid samples $X_1, \dots, X_n \sim F$ where $F$ is an unknown cdf.
+Find estimator of:
+$$
+\theta = t(F)
+$$
+Il Principio di Plug-in è un metodo per stimare parametri della popolazione senza assumere che i dati seguano una distribuzione specifica (come la Normale). L'idea è trattare il campione raccolto come se fosse l'intera popolazione.
+
+e.g. 
+$$
+\theta = \mathbb E(X) = \int_{-\infty}^{\infty} x \ \mathrm d F(x) = \begin{cases}\int_{-\infty}^\infty x f(x) \mathrm d x \quad & \text{if} X \text{ is continuous} \\ \sum_x x f(x) \quad & \text{if}\ X\ \text{is discrete}\end{cases}
+$$
+
+or
+
+$$
+\theta = \mathrm{Var}(X)=\int (x-\mathbb E(X))^2 \ \mathrm d F
+$$
+
+
+- $F$ can be estimated non-parametrically by the estimator
+$$
+\hat F (\pmb x) = \frac 1n \sum_{i=1}^n I(\pmb x_i \leq \pmb x)
+$$
+the empirical cdf.
+La funzione di distribuzione empirica ($\hat{F}$) è uno stimatore non parametrico che 'salta' di $1/n$ in corrispondenza di ogni dato osservato. È fondamentale perché, per il teorema di Glivenko-Cantelli, sappiamo che all'aumentare di $n$, $\hat{F}$ converge alla distribuzione vera $F$.
+
+![estimated F](images/bootstrap1.png)
+
+- The corresponding (plug-in) estimator of $\theta$ is
+$$
+\hat \theta = t(\hat F)$$
+
+Thus, if $\theta = \mathbb E(X)=\int x \mathrm dF$,
+$$
+\hat \theta = \int_{-\infty}^\infty x \ \mathrm d \hat F = \sum_x x \hat f(x) = \sum_{i=1}^n x_i \frac 1n = \bar x = \mathbb E_{\hat F}(X)
+$$
+L'integrale rispetto a $d\hat{F}$ si trasforma in una sommatoria perché la distribuzione empirica è discreta e assegna peso $1/n$ a ogni punto.
+
+and if $\theta = \mathrm Var(X) = \int (X-\mathbb E(X))^2 \ \mathrm dF$,
+
+\begin{align*}
+\hat \theta = \widehat{\mathrm{Var}(X)} = \sum_x (x-\mathbb E (X))\hat f(x) = \\
+= \sum_{i=1}^n(x_i-\bar x)^2 \frac 1n = \frac 1n \sum_{i=1}^n(x_i-\bar x)^2= \mathrm{Var}_{\hat F}(X)
+\end{align*}
+
+Nota: Lo stimatore plug-in della varianza usa il divisore $n$. Sebbene sia leggermente distorto (sottostima la varianza reale), è la conseguenza naturale dell'applicazione del principio di sostituzione sulla popolazione campionaria.
+
+If $\theta = \mathrm{SD}(X)$,
+$$
+\hat \theta = \widehat{\mathrm{SD}(X)} = SD_{\hat F} (X)
+$$
+
+If $\theta=Skew(X)=\mathbf E((\frac{X-\mu}{\sigma})^3)$, the plug in estimator of $\theta$ is:
+$$
+\hat \theta = Skew_{\hat F}(X)
+$$
+
+Il vero vantaggio del metodo plug-in emerge con parametri come lo Skewness o la Mediana, dove il calcolo analitico della distribuzione dello stimatore sarebbe molto difficile. Sostituendo $F$ con $\hat{F}$, otteniamo una stima immediata basata sui dati.
+
+What is the sampling distribution of these plug-in estimators if we replace $F$ by $\hat F$?
+
+### Approximate method
+
+1. **Generate $B$ bootstrap samples**
+$$
+X^1, X^2 , \dots , X^B \quad \text{where} \ X^b = (x_1^b, x_2^b, \dots, x_n^b)
+$$
+and 
+$$
+x_i^b\overset{iid}{\sim} \hat F\ \  \text{ for }\ \ i=1,2,\dots,n, \quad b=1,2,\dots,B
+$$
+Estrarre un campione da $\hat{F}$ equivale a fare un campionamento con reinserimento (sampling with replacement) dal set di dati originale $\{x_1, \dots, x_n\}$. Ogni campione bootstrap ha la stessa numerosità $n$ del campione originale.
+2. **Compute corresponding bootstrap replicates of plug-in estimator $\hat \theta$ of $\theta$**,
+$$
+\hat \theta^b = t(\hat F^b)
+$$
+Per ogni nuovo set di dati 'artificiale' $X^b$, calcoliamo la statistica di interesse (es. media, mediana, varianza). Queste $\hat{\theta}^b$ formano la distribuzione bootstrap, che usiamo come approssimazione della distribuzione campionaria reale dello stimatore.
+3. **Estimate** e.g. $\mathbb E_{\hat F}(\hat \theta)$ and $\mathrm{SD}_{\hat F}(\hat \theta)$ or, in general $\mathbb E(h(\hat \theta))$, by Monte-Carlo intergration, i.e.
+$$
+\widehat{\mathbb E(\hat \theta)} = \frac 1B \sum_{b=1}^B \hat \theta ^b
+$$
+and
+$$
+\widehat{\mathrm{SD}(\hat \theta)} = \sqrt{\frac 1{B-1} \sum_{b=1}^B \Big(\hat \theta ^b-\widehat{\mathbb E(\hat \theta)}\Big)^2}
+$$
+Poiché calcolare esattamente tutte le possibili combinazioni di $\hat{F}$ sarebbe computazionalmente impossibile (sono $n^n$), usiamo l'integrazione Monte Carlo. Più grande è $B$ (solitamente $B \geq 1000$), più la nostra stima della variabilità di $\hat{\theta}$ sarà precisa.
+La deviazione standard delle repliche bootstrap è la stima dell'errore standard dello stimatore originale $\hat{\theta}$.
+
+### Exact method
+Mentre il metodo approssimato usa Monte Carlo per estrarre $B$ campioni, il Metodo Esatto calcola il valore atteso del plug-in estimator pesando ogni possibile combinazione campionaria per la sua probabilità teorica. Questo elimina l'errore di simulazione, lasciando solo l'errore statistico dovuto a $n$ piccolo.
+
+It is applicable for small $n$.
+If the original sample $x_1,x_2,\dots ,x_n$ consists of distinct values the number of unordered outcomes.
+($(x_4,x_4,x_1,x_2)$ the same as $(x_1,x_2,x_4,x_4)$) is
+$$
+\binom{2n-1}{n-1} \approx \Big(n\pi \Big)^{-\frac 12}2^{2n-1}\ \overset{n=10}= \ 92378
+$$
+and the probability of observing $m_1,m_2, \dots, m_n$ of each value $x_1, x_2, \dots, x_n$ is
+$$
+\frac{n!}{m_1!m_2!\dots m_n!} \cdot \underbrace{\Big(\frac 1n\Big)^{m_1}\Big(\frac 1n\Big)^{m_2}\cdot \dots \cdot \Big(\frac 1n\Big)^{m_n}}_{n^{-n}}
+$$
+since $m_1,\dots ,m_n \sim \mathrm{multinorm}\Big(n,\Big(\frac 1n, \frac 1n, \dots , \frac 1n\Big)\Big)$
+
+infatti, ogni campione bootstrap ha una probabilità specifica di verificarsi, dettata dalla distribuzione Multinomiale. Poiché la ECDF assegna probabilità $1/n$ a ogni $x_i$, la probabilità di osservare un vettore di frequenze $\pmb m$ (dove $\sum m_i = n$) segue la logica del 'lancio del dado' a $n$ facce ripetuto $n$ volte.
+
+**Riassumendo:**
+
+- Ideal (exact) Bootstrap: Teoricamente perfetto, ma computazionalmente impossibile per $n > 15$ circa.
+- Monte Carlo Bootstrap: L'approssimazione pratica che usiamo tutti i giorni, dove l'errore diminuisce all'aumentare di $B$.
+
+### Parametric bootstrapping
+
+A differenza del bootstrap non parametrico, qui assumiamo di conoscere il modello (es. i dati seguono una Normale o una Poisson). L'unica cosa che non conosciamo è il valore esatto dei parametri $\pmb \theta$ di quella distribuzione.
+
+Suppose original data
+$$
+\pmb x = (x_1,x_2, \dots, x_n) \sim F(\pmb x; \pmb \theta)
+$$
+where $F$ is known and $\pmb \theta$ is unknown.
+
+Estimate $\pmb \theta$ by $\hat {\pmb \theta}$ (by given method, e.g. ML) and $F(\pmb x; \pmb \theta)$ by $F(\pmb x; \hat{\pmb \theta})$
+
+Il primo passo consiste nell'usare i dati reali per trovare la 'migliore' distribuzione teorica che li descrive. Di solito si usa la Maximum Likelihood (ML).
+
+**Algorithm:**
+
+1. **Simulate $\pmb x^1, \pmb x^2, \dots, \pmb x^B \overset{iid}{\sim} F(\pmb x;\hat \theta)$**<br>
+Qui non campioniamo più dai dati originali (non facciamo reinserimento). Invece, usiamo il computer per generare nuovi numeri casuali direttamente dalla distribuzione teorica $F(\pmb x; \hat{\pmb \theta})$.
+2. **Compute corresponding bootstrap replicates of $\hat{\pmb \theta},\ \hat{\pmb \theta}^b, \ b=1,2,\dots, B$ (by same given method)** <br>
+Per ogni campione simulato, ricalcoliamo il parametro con lo stesso metodo (es. ML). Questo ci dice quanto sarebbe variata la nostra stima se la popolazione fosse esattamente quella identificata da $\hat{\pmb \theta}$.
+3. **Estimate $\mathbb E(h(\hat \theta))$ by Monte-Carlo integration**<br>
+
+| Vantaggio | Svantaggio |
+| --- | --- |
+| Se l'assunzione sul modello $F$ è corretta, il bootstrap parametrico è generalmente più preciso di quello non parametrico (ha un errore standard minore), perché sfrutta l'informazione aggiuntiva data dalla forma della distribuzione. | Se però il modello scelto è sbagliato (es. i dati non sono Normali ma noi assumiamo che lo siano), i risultati del bootstrap parametrico saranno distorti e inaffidabili. |
+
+
+
+  
 
 ## Bootstrap confidence intervals
 
