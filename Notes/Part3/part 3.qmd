@@ -176,7 +176,7 @@ infatti, ogni campione bootstrap ha una probabilità specifica di verificarsi, d
 - Ideal (exact) Bootstrap: Teoricamente perfetto, ma computazionalmente impossibile per $n > 15$ circa.
 - Monte Carlo Bootstrap: L'approssimazione pratica che usiamo tutti i giorni, dove l'errore diminuisce all'aumentare di $B$.
 
-### Parametric bootstrapping
+## Parametric bootstrapping
 
 A differenza del bootstrap non parametrico, qui assumiamo di conoscere il modello (es. i dati seguono una Normale o una Poisson). L'unica cosa che non conosciamo è il valore esatto dei parametri $\pmb \theta$ di quella distribuzione.
 
@@ -202,9 +202,56 @@ Per ogni campione simulato, ricalcoliamo il parametro con lo stesso metodo (es. 
 | --- | --- |
 | Se l'assunzione sul modello $F$ è corretta, il bootstrap parametrico è generalmente più preciso di quello non parametrico (ha un errore standard minore), perché sfrutta l'informazione aggiuntiva data dalla forma della distribuzione. | Se però il modello scelto è sbagliato (es. i dati non sono Normali ma noi assumiamo che lo siano), i risultati del bootstrap parametrico saranno distorti e inaffidabili. |
 
+### Estimating and correcting for bias
 
+Having estimated $\mathbb E(\hat \theta)$ by $\widehat{\mathbb E(\hat \theta)} = \frac 1B \sum_{b=1}^B \hat \theta^b$, an estimator of $\widehat{\mathrm{Bias}(\hat \theta)}=\widehat{\mathbb E(\hat \theta)}-\hat \theta$
+is:
+$$
+\widehat{\mathrm{Bias}(\hat \theta)} = \widehat{\mathbb E(\hat \theta)} - \hat \theta
+$$
 
+Subtracting the estimated bias from $\hat \theta$, we obtain a bias-corrected estimator:
+
+$$
+\hat \theta_c = \hat \theta - \widehat{\mathrm{Bias}(\hat \theta)}
+$$
   
+Typically has less but non-zero bias and sometimes higher variance.
+
+:::{.callout-tip}
+### Ex. August 2024, Problem 4
+
+$X_1,\dots,X_n \overset{\mathrm{iid}}{\sim} F$, with $F(x)=1-e^{-\lambda x}$ (exponential distribution)
+
+- The MLE of $\lambda$ is $\hat \lambda = \frac n{\sum_{i=1}^n X_i}$
+- Observed data gives $\hat \lambda= 2.0$
+
+Let $\pmb x^b$ and $\hat \lambda^b$, $b = 1,2,\dots, B$ denote the parametric bootstrap samples from $F(\hat \lambda)$, and suppose $\frac 1B \sum \hat \lambda ^b = 2.24$
+
+1. An estimate of $\mathbb E(\hat \lambda)$ is then $\widehat{\mathbb E(\hat \lambda)} = \frac 1B \sum \hat \lambda^b = 2.24$ and an estimate of $\mathrm Bias (\hat \lambda) = \mathbb E(\hat \lambda)-\lambda$ is
+$$
+\widehat{\mathrm{Bias}(\hat \lambda)} = \widehat{\mathbb E(\hat \lambda)} -\hat \lambda = 2.24 - 2 = 0.24
+$$
+A bias corrected estimate of $\lambda$ is then:
+$$
+\hat \lambda_c = \hat \lambda - \widehat{\mathrm{Bias}(\hat \lambda)} = \hat \lambda - \Big ( \frac 1B \sum_{b=1}^B \hat \lambda ^b-\hat \lambda\Big) = 2\hat \lambda - \frac 1B \sum_{b=1}^B \hat \lambda ^b = 2-0.24 = 1.76 
+$$
+
+2. In this particular example, we know analytically that
+$$
+\mathbb E(\hat \lambda) = \frac n{n-1}\lambda \overset{n=10}= \frac {10}9 \lambda = 1.11 \lambda
+$$
+This implies that
+$$
+\mathbb E(\hat \lambda^b | \hat \lambda) = \frac n{n-1}\hat \lambda
+$$
+Thus,
+\begin{align*}
+\mathbb E(\hat \lambda_c | \hat \lambda) = \mathbb E \Big ( 2\hat \lambda - \frac 1B \sum \hat \lambda ^b \vert \hat \lambda \Big ) = 
+\end{align*}
+
+:::
+
 
 ## Bootstrap confidence intervals
 
