@@ -2,7 +2,16 @@
 title: "Bootstrapping and the EM-algorithm"
 author: "Alessandro Cavalieri"
 date: "2026-05-02"
-format: pdf
+format: 
+  pdf:
+    toc: true
+    toc-depth: 3
+    number-sections: true
+    colorlinks: true
+execute:
+  echo: false
+  warning: false 
+  message: false
 ---
 
 <style>
@@ -319,3 +328,153 @@ $$
 | --- | --- | --- |
 | Percentile | $[\hat \theta_{\alpha/2}^{(b)}, \hat \theta_{1-\alpha/2}^{(b)}]$ | Existance of a symmetry-transform $\phi$ |
 | Basic (Pivotal) | $[2\hat \theta - \hat \theta^{(b)}_{1-\alpha/2}, 2\hat \theta -\hat \theta^{(b)}_{\alpha/2}]$ | $\hat \theta - \theta$ is the pivot |
+
+## Bootstrapping regression
+
+**Model:**
+$$
+y_i=\pmb x_i^\top \pmb\beta + \varepsilon_i
+$$
+where the errors $\varepsilon_i$ are iid zero mean constant variance $\sigma^2$ (homoscedasticity).
+
+In matrix notation:
+$$
+\pmb y = X\pmb \beta +\pmb \varepsilon
+$$
+
+**Least square estimate** of $\pmb \beta$ is:
+$$
+\hat{\pmb \beta}= \arg\min_{\pmb \beta} \Vert \pmb y-X\pmb \beta \Vert _2^2 = (X^\top X)^{-1}X^\top \pmb y
+$$
+Residuals defined as:
+$$
+\hat{\varepsilon}_i = y_i-\pmb x_i^\top \hat{\pmb \beta}
+$$
+
+**Bootstrapping residuals:**
+
+1. For each bootstrap iteration $b = 1, \dots, B$, generate $n$ bootstrap errors $\pmb\varepsilon_b^* = (\varepsilon_{1,b}^*, \dots, \varepsilon_{n,b}^*)$ by resampling with replacement from $\hat{\varepsilon}_1 , \dots, \hat{\varepsilon}_n$.
+2. Loop: For each iteration $b$:
+
+    - Compute the synthetic response: $y_{i,b}^* = \pmb x_i^\top \hat{\pmb\beta} + \varepsilon_{i,b}^*$
+    - Compute the bootstrap replicate estimate: $\hat{\pmb\beta}_b^* = (X^\top X)^{-1}X^\top \pmb y_b^*$
+
+:::{.callout-tip}
+### Why residuals bootstrapping is more appropriate for experimental data
+This residual bootstrap method is highly appropriate for experimental data where the design matrix $X$ is fixed by the experimenter. If $X$ is random (e.g., observational survey data), paired bootstrapping (resampling the entire tuple $(\pmb x_i, y_i)$ together) is usually preferred because it doesn't assume homoscedasticity.
+:::
+
+**Bootstrapping pairs:**
+
+1. For each bootstrap iteration $b = 1, \dots, B$, generate a bootstrap sample of size $n$:
+$$
+(\pmb x_{1,b}^*, y_{1,b}^*), \dots, (\pmb x_{n,b}^*, y_{n,b}^*)
+$$
+by sampling the original data pairs $(\pmb x_i, y_i)$ with replacement.
+2. Loop: For each iteration $b$:
+
+    - Construct the bootstrap design matrix $X_b^*$ and response vector $\pmb y_b^*$ from the sampled pairs.
+    - Compute the bootstrap replicate estimate:
+    $$\hat{\pmb\beta}_b^* = (X_b^{*\top}X_b^*)^{-1}X_b^{*\top} \pmb y_b^*$$
+
+:::{.callout-tip}
+### Why pairs bootstrapping is more appropriate for observational data
+Unlike the residual bootstrap, paired bootstrapping does not rely on the model being correctly specified, nor does it assume the errors have a constant variance (homoscedasticity). If your observational data has heteroscedasticity (where data volatility changes across different values of $X$), paired bootstrapping inherently preserves that relationship and gives you valid standard errors.
+:::
+
+## Accelerated Bias-corrected Percentile Method $BC_a$
+
+Assume a strictly increasing monotonic transformation $\phi()$ and constants $a$ (acceleration) and $b$ (bias-correction) exist such that:
+$$
+U=\frac{\phi(\hat \theta)-\phi(\theta)}{1+a\phi(\theta)}+b\sim \mathcal N(0,1)
+$${#eq-U1}
+
+Assuming the bootstrap replicates $U^*$ follow the exact same distribution under the empirical distribution $\hat F$:
+$$
+U^* = \frac{\phi(\hat{\theta}^*)-\phi(\theta)}{1+a\phi(\theta)}+b\sim \mathcal N(0,1)
+$${#eq-Ustar}
+Thus, from @eq-Ustar,
+$$
+\begin{aligned}
+\beta &= \mathbb P(U^*\leq z_\beta) \\
+&= \mathbb P\Big(
+\frac{\phi(\hat{\theta}^*)-\phi(\theta)}
+     {1+a\phi(\theta)} + b
+\leq z_\beta \Big) \\
+&= \mathbb P\Big(
+\hat{\theta}^* \leq
+\underbrace{\phi^{-1}\big(
+\phi(\hat \theta)
++(z_\beta-b)[1+a\phi(\hat \theta)]
+\big)}_{=\hat{\theta}_\beta^* = \substack{\text{observable empirical}\\ \beta-\text{quantile of }\hat{\theta}^*}}
+\Big)
+\end{aligned}
+$$ {#eq-probhattheta}
+
+Similarly, from $(1)$, isolating $\theta$ rather than $\hat \theta$.
+\begin{align*}
+1-\alpha &= \mathbb P(U>z_\alpha) \\
+&=\mathbb P\Big (\frac{\phi(\hat \theta)-\phi(\theta)}{1+a\phi(\theta)}+b>z\alpha \Big) \\
+& =\mathbb P\Big(\phi(\hat \theta)-\phi(\theta) > (z_\alpha -b)(1+a\phi(\theta))\Big) \\
+&= \mathbb P\Big(\phi(\hat \theta)+b-z_\alpha >[1\underbrace{-a(b-z_\alpha)}_{(z_\alpha-b)a}]\phi(\theta)\Big) \\
+&= \mathbb P \Big (\theta < \phi^{-1} \Big ( \frac{\phi(\hat \theta)+b-z_{\alpha}}{1-a(b-z_\alpha)}\Big)\Big) \\
+& = \mathbb P\Big ( \theta < \underbrace{\phi^{-1}\Big ( \phi(\hat \theta)+\frac{b-z_\alpha}{1-a(b-z_\alpha)} (1+a\phi(\hat \theta)) \Big)}_{(*)}\Big)
+\end{align*}
+
+$(*)$ is the upper limit of a $(1-\alpha)$ one sided confidence interval for $\theta$, equal to $\hat{\theta}_\beta^*$ for 
+$$
+\frac{b-z_\alpha}{1-a(b-z_\alpha)} = z_\beta -b
+$$
+Solving for $\beta$ yields the exact mapping for our interval endpoint:
+$$
+\beta = \Phi\Big ( b+\frac{b-z_\alpha}{1-a(b-z_\alpha)}\Big)
+$$
+A two-sided $(1-\alpha)$ confidence interval is given by $\Big ( \hat{\theta}_{\beta_1}^*, \hat{\theta}_{\beta_2}^*\Big)$, where you calculate $\beta_1$ using $z_{1-\alpha/2}$ and $\beta_2$ using $z_{\alpha/2}$.
+
+### Estimating $a$ and $b$ (Shao & Tu, 1996)
+
+Because $\phi()$ is an imaginary tool used only for the derivation, we calculate our tuning parameters non-parametrically directly from the data:
+
+\begin{align*}
+b &= \Phi^{-1}\Big (\overbrace{F_{\hat{\theta}^*}(\hat \theta)}^{\text{cdf of } \hat{\theta}^*}\Big) \approx \Phi^{-1}\left(\frac{1}{B}\sum_{b=1}^B \mathbb{I}(\hat{\theta}_b^* < \hat{\theta})\right) \\
+a &= \frac{\frac{1}{6} \sum_{i=1}^n \psi_i^3}{\Big(\sum \psi_i^2 \Big)^{2/3}}
+\end{align*}
+
+Where we use the jackknife values:
+
+- $\psi_i = \hat{\theta}_{()} - \hat{\theta}_{(-i)}$
+- $\hat{\theta}_{(-i)}$ is the estimate calculated by omitting the $i$-th observation.
+- $\hat{\theta}_{()} = \frac{1}{n} \sum_{i=1}^n \hat{\theta}_{(-i)}$ (the jackknife mean).
+
+## Bootstrap $t$ confidence interval
+
+Suppose an estimate $\hat V$ of the variance of $\hat \theta$ is "directly" available.
+
+:::{.callout-tip}
+### Example: regression, $\hat \theta = f(\hat \beta_0, \hat \beta_1) = \frac{\hat \beta_1}{\hat \beta_0}$
+
+$$
+\hat V = \widehat{\mathrm{Var} ( \hat \theta)} \approx \Big (\frac{\partial f}{\partial \beta_0}\Big)^2 \widehat{\mathrm{Var}(\hat \beta_1)} + 2 \Big (\frac{\partial f}{\partial \beta_0}\Big)\Big (\frac{\partial f}{\partial \beta_1}\Big)\widehat{\mathrm{Cov}(\beta_0,\beta_1)}+\Big (\frac{\partial f}{\partial \beta_1}\Big)^2 \widehat{\mathrm{Var}(\hat{\beta}_1)}
+$$
+Then:
+$$
+R=\frac{\hat \theta-\theta}{\sqrt{\hat V}}
+$$
+is approximately pivotal. The bootstrap replicates
+$$
+R^*=\frac{\hat{\theta}^*-\hat \theta}{\sqrt{\hat{V}^*}}
+$$
+should have approximately same distribution and observable quantiles $R_{\frac \alpha 2}^*$ and $R_{1-\frac \alpha 2}^*$. Thus:
+$$
+\mathbb P\Big (R_{\frac \alpha 2}^* < \frac{\hat \theta-\theta}{\sqrt{\hat V}}<R^*_{1-\frac \alpha 2}\Big)\approx 1-\alpha
+$$
+and so:
+$$
+\Big ( \hat \theta -\sqrt{\hat V} R^*_{1-\frac \alpha 2} < \theta < \hat \theta-\sqrt{\hat V} R^*_{\frac \alpha 2}\Big)
+$$
+is an approximate $1-\alpha$ confidence interval for $\theta$.
+
+:::
+
+## Bootstrapping time-series models
+

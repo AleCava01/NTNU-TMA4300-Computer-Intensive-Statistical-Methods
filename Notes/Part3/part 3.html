@@ -249,8 +249,9 @@ x_i^b\overset{iid}{\sim} \hat F\ \  \text{ for }\ \ i=1,2,\dots,n, \quad b=1,2,\
 <li>Monte Carlo Bootstrap: L’approssimazione pratica che usiamo tutti i giorni, dove l’errore diminuisce all’aumentare di <span class="math inline">\(B\)</span>.</li>
 </ul>
 </section>
-<section id="parametric-bootstrapping" class="level3">
-<h3 class="anchored" data-anchor-id="parametric-bootstrapping">Parametric bootstrapping</h3>
+</section>
+<section id="parametric-bootstrapping" class="level2">
+<h2 class="anchored" data-anchor-id="parametric-bootstrapping">Parametric bootstrapping</h2>
 <p>A differenza del bootstrap non parametrico, qui assumiamo di conoscere il modello (es. i dati seguono una Normale o una Poisson). L’unica cosa che non conosciamo è il valore esatto dei parametri <span class="math inline">\(\pmb \theta\)</span> di quella distribuzione.</p>
 <p>Suppose original data <span class="math display">\[
 \pmb x = (x_1,x_2, \dots, x_n) \sim F(\pmb x; \pmb \theta)
@@ -281,6 +282,48 @@ x_i^b\overset{iid}{\sim} \hat F\ \  \text{ for }\ \ i=1,2,\dots,n, \quad b=1,2,\
 </tr>
 </tbody>
 </table>
+<section id="estimating-and-correcting-for-bias" class="level3">
+<h3 class="anchored" data-anchor-id="estimating-and-correcting-for-bias">Estimating and correcting for bias</h3>
+<p>Having estimated <span class="math inline">\(\mathbb E(\hat \theta)\)</span> by <span class="math inline">\(\widehat{\mathbb E(\hat \theta)} = \frac 1B \sum_{b=1}^B \hat \theta^b\)</span>, an estimator of <span class="math inline">\(\widehat{\mathrm{Bias}(\hat \theta)}=\widehat{\mathbb E(\hat \theta)}-\hat \theta\)</span> is: <span class="math display">\[
+\widehat{\mathrm{Bias}(\hat \theta)} = \widehat{\mathbb E(\hat \theta)} - \hat \theta
+\]</span></p>
+<p>Subtracting the estimated bias from <span class="math inline">\(\hat \theta\)</span>, we obtain a bias-corrected estimator:</p>
+<p><span class="math display">\[
+\hat \theta_c = \hat \theta - \widehat{\mathrm{Bias}(\hat \theta)}
+\]</span></p>
+<p>Typically has less but non-zero bias and sometimes higher variance.</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span>Ex. August 2024, Problem 4
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><span class="math inline">\(X_1,\dots,X_n \overset{\mathrm{iid}}{\sim} F\)</span>, with <span class="math inline">\(F(x)=1-e^{-\lambda x}\)</span> (exponential distribution)</p>
+<ul>
+<li>The MLE of <span class="math inline">\(\lambda\)</span> is <span class="math inline">\(\hat \lambda = \frac n{\sum_{i=1}^n X_i}\)</span></li>
+<li>Observed data gives <span class="math inline">\(\hat \lambda= 2.0\)</span></li>
+</ul>
+<p>Let <span class="math inline">\(\pmb x^b\)</span> and <span class="math inline">\(\hat \lambda^b\)</span>, <span class="math inline">\(b = 1,2,\dots, B\)</span> denote the parametric bootstrap samples from <span class="math inline">\(F(\hat \lambda)\)</span>, and suppose <span class="math inline">\(\frac 1B \sum \hat \lambda ^b = 2.24\)</span></p>
+<ol type="1">
+<li><p>An estimate of <span class="math inline">\(\mathbb E(\hat \lambda)\)</span> is then <span class="math inline">\(\widehat{\mathbb E(\hat \lambda)} = \frac 1B \sum \hat \lambda^b = 2.24\)</span> and an estimate of <span class="math inline">\(\mathrm Bias (\hat \lambda) = \mathbb E(\hat \lambda)-\lambda\)</span> is <span class="math display">\[
+\widehat{\mathrm{Bias}(\hat \lambda)} = \widehat{\mathbb E(\hat \lambda)} -\hat \lambda = 2.24 - 2 = 0.24
+\]</span> A bias corrected estimate of <span class="math inline">\(\lambda\)</span> is then: <span class="math display">\[
+\hat \lambda_c = \hat \lambda - \widehat{\mathrm{Bias}(\hat \lambda)} = \hat \lambda - \Big ( \frac 1B \sum_{b=1}^B \hat \lambda ^b-\hat \lambda\Big) = 2\hat \lambda - \frac 1B \sum_{b=1}^B \hat \lambda ^b = 2-0.24 = 1.76
+\]</span></p></li>
+<li><p>In this particular example, we know analytically that <span class="math display">\[
+\mathbb E(\hat \lambda) = \frac n{n-1}\lambda \overset{n=10}= \frac {10}9 \lambda = 1.11 \lambda
+\]</span> This implies that <span class="math display">\[
+\mathbb E(\hat \lambda^b | \hat \lambda) = \frac n{n-1}\hat \lambda
+\]</span> Thus, <span class="math display">\[\begin{align*}
+\mathbb E(\hat \lambda_c | \hat \lambda) = \mathbb E \Big ( 2\hat \lambda - \frac 1B \sum \hat \lambda ^b \vert \hat \lambda \Big ) =
+\end{align*}\]</span></p></li>
+</ol>
+</div>
+</div>
 </section>
 </section>
 <section id="bootstrap-confidence-intervals" class="level2">
@@ -290,12 +333,12 @@ x_i^b\overset{iid}{\sim} \hat F\ \  \text{ for }\ \ i=1,2,\dots,n, \quad b=1,2,\
 <ol type="1">
 <li>Generate <span class="math inline">\(X_1, X_2, \dots , X_B \overset{\text{iid}}{\sim} \hat F\)</span></li>
 <li>Compute <span class="math inline">\(\hat \theta_1, \hat \theta_2, \dots, \hat \theta_B\)</span></li>
-<li>Compute empirical <span class="math inline">\(\alpha/2\)</span> and <span class="math inline">\(1-\alpha/2\)</span> quantiles of <span class="math inline">\(\hat \theta^{(b)}, \hat \theta_{\alpha/2}^{(b)}, \ \hat \theta_{1-\alpha/2}^{(b)}\)</span> <strong>Justification</strong>: valid if a strictly increasing transformation <span class="math inline">\(\phi(\theta)\)</span> exists, such that <span class="math inline">\(\phi(\hat \theta)-\phi(\theta)\)</span> has cdf <span class="math inline">\(H(z)=1-H(-z)\)</span>. Then: <span id="eq-ci"><span class="math display">\[
-\begin{equation}
-\mathbb P\Big(h_{\alpha/2} \leq \phi (\hat \theta) -\phi(\theta) \leq h_{1-\alpha/2}\Big) = 1-\alpha
-\end{equation}
-\tag{1}\]</span></span> where <span class="math inline">\(h_\alpha= H ^{-1}(\alpha)\)</span>.</li>
+<li>Compute empirical <span class="math inline">\(\alpha/2\)</span> and <span class="math inline">\(1-\alpha/2\)</span> quantiles of <span class="math inline">\(\hat \theta^{(b)}, \hat \theta_{\alpha/2}^{(b)}, \ \hat \theta_{1-\alpha/2}^{(b)}\)</span> <strong>Justification</strong>: valid if a strictly increasing transformation <span class="math inline">\(\phi(\theta)\)</span> exists, such that <span class="math inline">\(\phi(\hat \theta)-\phi(\theta)\)</span> has cdf <span class="math inline">\(H(z)=1-H(-z)\)</span>. Then:</li>
 </ol>
+<p><span id="eq-ci"><span class="math display">\[
+\mathbb P\Big(h_{\alpha/2} \leq \phi (\hat \theta) -\phi(\theta) \leq h_{1-\alpha/2}\Big) = 1-\alpha
+\tag{1}\]</span></span></p>
+<p>where <span class="math inline">\(h_\alpha= H ^{-1}(\alpha)\)</span>.</p>
 <p>Given an existing implicit <span class="math inline">\(\phi\)</span>, bootstrap replicates of <span class="math inline">\(\phi(\hat \theta)-\phi(\theta)\)</span> are given by <span class="math inline">\(\phi(\hat \theta^{(b)})-\phi(\hat \theta)\)</span> satisfying <span class="math display">\[
 \mathbb P\Big(h_{\alpha/2} \leq \phi(\hat \theta^{(b)})-\phi(\hat \theta)\leq h_{1-\alpha/2}\Big) \simeq 1-\alpha
 \]</span> and so: <span class="math display">\[
