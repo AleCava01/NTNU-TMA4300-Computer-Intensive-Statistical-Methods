@@ -2,12 +2,16 @@
 title: "Bayesian inference and Markov chain Monte Carlo"
 author: "Alessandro Cavalieri"
 date: "2026-02-20"
-output: 
-  html_document:
+format: 
+  pdf:
     toc: true
-    toc_depth: 3
-    toc_float:
-      collapsed: false
+    toc-depth: 3
+    number-sections: true
+    colorlinks: true
+execute:
+  echo: false
+  warning: false 
+  message: false
 ---
 
 <style>
@@ -29,11 +33,13 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## Hierarchical Bayesian Models
+
 Hierarchical Bayesian Models, also known as Multilevel models, are Bayesian statistical models designed to handle structured, grouped, or nested data by modeling parameters themselves as random variables drawn from higher-level distributions.
 
 They are extremely useful when data comes from multiple related groups and you want partial pooling rather than treating groups as completely independent or completely identical.
 
 #### Comparison with classical statistics
+
 In classical statistics, the parameters are estimated directly and each group might be modeled separately (no pooling) or all together (complete pooling).
 In Hierarchical Bayesian Modeling instead, parameters themselves are random variables, group-level parameters are drawn from a shared population distribution and that population has its own parameters.
 
@@ -146,6 +152,7 @@ $$
 ::: {.example-block}
 
 #### Example (Power Plants)
+
 <center>
 ![Power plants example DAG](./power_plants_dag.png){width=50%}
 </center>
@@ -162,13 +169,10 @@ f(\alpha,\beta, \lambda_{1:n}, y_{1:n})
 &= \underbrace{\alpha e^{-\alpha}}_{\text{Exp}(1)}
    \;
    \underbrace{\beta^{0.1-1} e^{-\beta}}_{\Gamma(0.1,1)}
-
    \prod_{i=1}^n
    \frac{\beta^\alpha}{\Gamma(\alpha)}
    \lambda_i^{\alpha-1}
    e^{-\beta \lambda_i}
-
-
    \prod_{i=1}^n
    \frac{(\lambda_i t_i)^{y_i} e^{-\lambda_i t_i}}{y_i!}
 \end{align}
@@ -392,13 +396,12 @@ $$
 
 with acceptance probability:
 
-$$
+
 \begin{align}
 \alpha (\mathbf y_j \mid x_j,\mathbf x_{-j})
 &= \min \Big( 1, \frac{\pi (y) Q(x\mid y)}{\pi(x) Q(y\mid x)} \Big ) \\
 &= \min \Big (1, \frac{\pi (y_j \mid \mathbf y_{-j})\pi(\mathbf y_{-j}) Q_j(x_j|y_j,\mathbf y_{-j})}{\pi(x_j|\mathbf x_{-j}) \pi(\mathbf x_{-j}) Q_j (y_j|x_j,\mathbf x_{-j})} \Big)
 \end{align}
-$$
 
 - $\pi(\mathbf y_{-j})= \pi (\mathbf x_{-j})$ (only the $j$-th component changes $\implies \mathbf y_{-j} = \mathbf x_{-j}$)
 - Since $\pi(y_j|\mathbf y_{-j}) \propto \pi(\mathbf y)$, only factors containing $y_j$ needs to be evaluated.$\implies$ it makes high dimensional MCMC more efficient.
@@ -424,7 +427,6 @@ Notice also that high correlated component may lead to slow convergence.
 
 \begin{align}
 f(\alpha, \beta, \lambda_1,\dots, \lambda_n | y_1,\dots, y_n) & \propto  f(\alpha,\beta, \pmb \lambda_{1:n}, \pmb y_{1:n}) = \\ 
-
 & = e^{-\alpha}\beta^{0.1-1} e^{-\beta}\prod_{i=1}^n
    \frac{\beta^\alpha}{\Gamma(\alpha)} \lambda_i^{\alpha-1} e^{-\beta \lambda_i}   \prod_{i=1}^n \frac{(\lambda_i t_i)^{y_i} e^{-\lambda_i t_i}}{y_i!}
 \end{align}
@@ -435,7 +437,6 @@ f(\alpha, \beta, \lambda_1,\dots, \lambda_n | y_1,\dots, y_n) & \propto  f(\alph
 
 \begin{align}
 \pi(\beta | \alpha, \pmb\lambda_{1:n},\pmb y_{1:n}) & = \beta^{-0.9} e^{-\beta} \prod_{i=1}^n \beta^\alpha e^{-\beta \lambda_i} = \\
-
 & = \beta^{(\alpha n - 0.9)} e^{-\beta(1+ \sum_{i=1}^n \lambda_i)}
 \\
 & \sim \Gamma \Big(\alpha n+1,\ 1+ \sum_{i=1}^n \lambda_i\Big)
