@@ -1,5 +1,5 @@
 ---
-title: "Stochastic simulation"
+title: "TMA4300 - Part 1: Stochastic simulation"
 author: "Alessandro Cavalieri"
 date: "2026-02-20"
 format: 
@@ -60,8 +60,9 @@ $$
 
 The efficiency of rejection sampling depends on how well the proposal distribution $q(x)$ approximates the target distribution $p(x)$. If $M$ is large, the acceptance rate will be low, leading to many rejected samples. Therefore, it is crucial to choose a proposal distribution that closely matches the shape of the target distribution to improve efficiency.
 
-::: {.example-block}
+::: {.callout-tip}
 ### Example
+
 Suppose you want to sample from
 $$
 p(x)= \begin{cases}
@@ -172,80 +173,85 @@ $$
 \text{Acceptance Rate} = \frac{1}{M} = \frac{1}{2} = 0.5
 $$
 
-## Interactive rejection sampling
+:::
 
-```{ojs}
-//| panel: input
-viewof lambda = Inputs.range([0.1, 3], {step: 0.1, label: "λ (Proposal)", value: 1})
-viewof M = Inputs.range([1, 10], {step: 0.1, label: "M (Scaling)", value: 3})
-viewof run = Inputs.button("Generate 500 Samples")
-```
+## Convergence of random variables
 
-```{ojs}
-// 1. The Simulation Logic
-// This runs whenever the 'run' button is clicked
-results = {
-  run; // Reference 'run' to trigger recalculation
-  const n = 500;
-  const accepted = [];
-  const rejected = [];
-  let attempts = 0;
+Let $\{X_n\}_{n=1}^\infty$ be a sequence of random variables.
 
-  while (accepted.length < n && attempts < 5000) {
-    attempts++;
-    // Sample x from exponential proposal: x = -ln(1-u)/lambda
-    const x_prime = -Math.log(1 - Math.random()) / lambda;
-    const u = Math.random();
-    
-    const p_val = x_prime >= 0 ? 2 * Math.exp(-x_prime) * (1 - Math.exp(-x_prime)) : 0;
-    const mq_val = M * (lambda * Math.exp(-lambda * x_prime));
-    
-    const point = {x: x_prime, y: u * mq_val};
-    
-    if (u < p_val / mq_val) {
-      accepted.push({...point, status: "Accepted"});
-    } else {
-      rejected.push({...point, status: "Rejected"});
-    }
-  }
-  return {accepted, rejected, rate: accepted.length / attempts};
-}
-```
-```{ojs}
-// 2. Display Statistics
-md`**Acceptance Rate:** ${(results.rate * 100).toFixed(2)}% | **Total Iterations:** ${results.accepted.length + results.rejected.length}`
-```
-```{ojs}
-// 3. The Visualization
-Plot.plot({
-  width: 700,
-  height: 400,
-  grid: true,
-  y: {domain: [0, 2], label: "Density"},
-  x: {domain: [0, 6]},
-  color: {
-    domain: ["Target p(x)", "Envelope M*q(x)", "Accepted", "Rejected"],
-    range: ["blue", "green", "blue", "#ff000044"]
-  },
-  marks: [
-    // Static Lines
-    Plot.line(Array.from({length: 300}, (_, i) => i * 0.02), {
-      x: d => d, 
-      y: d => 2 * Math.exp(-d) * (1 - Math.exp(-d)), 
-      stroke: () => "Target p(x)", strokeWidth: 2
-    }),
-    Plot.line(Array.from({length: 300}, (_, i) => i * 0.02), {
-      x: d => d, 
-      y: d => M * (lambda * Math.exp(-lambda * d)), 
-      stroke: () => "Envelope M*q(x)", strokeWidth: 2, stroke: "#ff0000"
-    }),
-    // Sampled Points
-    Plot.dot(results.accepted, {x: "x", y: "y", fill: "blue", r: 2, title: "Accepted"}),
-    Plot.dot(results.rejected, {x: "x", y: "y", fill: "#ff0000", r: 1.5, fillOpacity: 0.2, title: "Rejected"}),
-    Plot.ruleY([0])
-  ]
-})
-```
+:::{.callout-note}
+### Almost sure convergence
 
+If
+$$
+\mathbb P \Big ( \lim_{n\to \infty} X_n = X\Big) = 1
+$$
+i.e.
+$$
+\mathbb P\Big ( \Big \{ \omega \in \Omega : \lim_{n\to\infty} X_n(\omega) = X\Big\}\Big) = 1
+$$
+Then
+$$
+X_n \overset{\mathrm{a.s.}}\to X \quad \text{as }n\to \infty
+$$
+:::
+
+:::{.callout-note}
+### Mean square convergence
+
+If
+$$
+\lim_{n\to \infty} \mathbb E\Big ( (X_n-X)^2\Big)
+$$
+Then
+$$
+X_n \overset{\mathrm L_2}\to X
+$$
+:::
+
+
+:::{.callout-note}
+### Convergence in probability
+
+If
+$$
+\lim_{n\to \infty} \mathbb P\Big ( |X_n-X|<\varepsilon\Big )=1
+$$
+Then
+$$
+X_n \overset{p}\to X
+$$
+:::
+
+
+## Monte Carlo Integration
+
+**Aim:** Estimate $\mathbb{E}[h(\mathbf{X})]$ where $\mathbf{X} \sim f(x)$.
+
+:::{.callout-tip}
+### Example of possible estimates
+
+Monte Carlo is not only used to estimate the mean of the random variable!
+
+- Choosing $h(X) = X$, we can estimate the mean $\mathbb{E}[X]$
+- Choosing $h(X) = (X-\mu)^2$, we can estimate the variance $\mathrm{Var}(X) = \mathbb{E}[(X-\mu)^2]$
+- Choosing $h(X) = I(X>a)$, we can estimate the tail probability $\mathbb{P}(X>a)$
 
 :::
+
+**Procedure:** Simulate $X_1, X_2, \dots, X_n \overset{iid}{\sim} f(x)$ and compute the empirical average:
+$$
+\widehat{\theta}_n = \frac 1n \sum_{i=1}^n h(X_i)
+$$
+**Properties of the Estimator**
+
+- **Unbiasedness**:
+$$
+\mathbb{E}[\widehat{\theta}_n] = \mathbb{E}\left( \frac 1n \sum_{i=1}^n h(X_i)\right) = \frac 1n \sum_{i=1}^n \mathbb{E}[h(X_i)] = \mathbb{E}[h(X)]
+$$
+- **Convergence (Strong Law of Large Numbers):** As $n \to \infty$, the estimator converges almost surely to the true value:$$  \frac 1n \sum_{i=1}^n h(X_i) \overset{\mathrm{a.s.}}{\longrightarrow} \mathbb{E}[h(X)]$$
+- **Error & Rate of Convergence (Central Limit Theorem):** Assuming $\sigma_h^2 = \mathrm{Var}(h(X)) < \infty$, the estimation error is asymptotically normally distributed:
+$$
+\sqrt{n} \left( \widehat{\theta}_n - \mathbb{E}[h(X)] \right) \overset{d}{\longrightarrow} \mathcal{N}(0, \sigma_h^2)
+$$
+**Key Takeaway:** This implies the standard error decreases at a rate of $\mathcal{O}(1/\sqrt{n})$, regardless of the dimensionality of $X$. This is why Monte Carlo shines in high dimensions!

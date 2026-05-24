@@ -478,3 +478,197 @@ is an approximate $1-\alpha$ confidence interval for $\theta$.
 
 ## Bootstrapping time-series models
 
+:::{.callout-tip}
+### Bootstrapping time-series models
+
+$$
+y_t -\mu = \phi(y_{t-1}-\mu)+\varepsilon_t, \quad \varepsilon_t \sim WN(\sigma^2)
+$${#eq-timeserie}
+
+For $|\phi|<1$, @eq-timeserie has a causal stationary solution with stationary mean $\mu$. Taking variance of @eq-timeserie, the stationary variance $\gamma_0 = \mathrm{Var}(y_t)=\mathrm{Var}(y_{t-1})$ satisfies:
+$$
+\gamma_0 = \phi^2\gamma_0 +\sigma^2 \implies \gamma_0 = \frac{\sigma^2}{1-\phi^2}
+$$
+MLEs of $\mu, \phi$ and $\sigma^2$ (assuming $\varepsilon_t\overset{iid}\sim \mathcal N(0,\sigma^2))$) obtained by maximizing $\pi(y_1,y_2, \dots, y_n | \mu,\phi, \sigma^2)$.
+
+Let $\hat \varepsilon_b = y_t- \widehat{\mathbb E(y_t | y_{t-1})}$, for $t=2,3,\dots, n$
+
+**Bootstrapping residuals:**
+For $b=1,2,\dots,B$:
+
+1. Create $n+m+1$ bootstrap innovations $\varepsilon_{-m}^*, \varepsilon_{-m+1}^*, \dots, \varepsilon_n^*$ by resampling $\hat \varepsilon_2, \hat \varepsilon_3, \dots , \hat \varepsilon_n$ with replacement.
+2. Compute $y_{-m}^*=\varepsilon_{-m}^*+\hat \mu$ and for $t=\overbrace{-m+1}^{\text{burn-in}},\dots,n$:
+$$
+y_t^* = \hat \mu +\hat \phi ({y}_{t-1}^*-\hat \mu)+\hat{\varepsilon}_t^*
+$$
+3. Refit model to $y_1^*,y_2^*, \dots, y_n^*$ to obtain bootstrap replicates $\hat{\mu}^{b*},\hat{\phi}^{b*},\hat{\sigma}^{2b*}$
+:::
+
+
+### Bootstrapping Time-Series Models
+
+**The Baseline Model**
+$$
+y_t -\mu = \phi(y_{t-1}-\mu)+\varepsilon_t, \quad \varepsilon_t \sim WN(\sigma^2)
+$${#eq-timeserie}
+For $|\phi|<1$, @eq-timeserie has a causal stationary solution with stationary mean $\mu$. Taking the variance of both sides of @eq-timeserie, the stationary variance $\gamma_0 = \mathrm{Var}(y_t)=\mathrm{Var}(y_{t-1})$ satisfies:$$ \gamma_0 = \phi^2\gamma_0 +\sigma^2 \implies \gamma_0 = \frac{\sigma^2}{1-\phi^2} $$
+The condition $|\phi| < 1$ ensures that the process doesn't "explode" over time. Because it is stationary, its mean ($\mu$) and variance ($\gamma_0$) remain constant across all time steps, which allows us to solve for $\gamma_0$ algebraically.Maximum Likelihood Estimators (MLEs) of $\mu, \phi,$ and $\sigma^2$ (assuming $\varepsilon_t\overset{iid}\sim \mathcal N(0,\sigma^2)$) are obtained by maximizing the joint likelihood function:$$ \pi(y_1,y_2, \dots, y_n \mid \mu, \phi, \sigma^2) $$
+
+**Step 1:** Extracting ResidualsLet the estimated residuals (innovations) be defined as:$$ \hat \varepsilon_t = y_t - \widehat{\mathbb E}(y_t \mid y_{t-1}) = y_t - \hat{\mu} - \hat{\phi}(y_{t-1} - \hat{\mu}) \quad \text{for } t=2,3,\dots, n $$[Key Insight: Whitening the Data] You cannot directly bootstrap the raw time series $y_t$ because its points are dependent on each other. Instead, we compute the residuals $\hat \varepsilon_t$. If the model is well-fitted, these residuals behave like Independent and Identically Distributed (i.i.d.) variables, making them perfectly safe to resample.
+
+**Step 2:** The Bootstrap LoopFor each bootstrap replication $b=1,2,\dots,B$:
+
+**A. Resampling Innovations**
+
+Create $n+m+1$ bootstrap innovations $\varepsilon_{-m}^*, \varepsilon_{-m+1}^*, \dots, \varepsilon_n^*$ by resampling the calculated residuals $\{\hat \varepsilon_2, \hat \varepsilon_3, \dots , \hat \varepsilon_n\}$ completely at random with replacement.
+
+**B. Recursive Reconstruction & Burn-In**
+
+Initialize the simulation at a distant past time step $t = -m$:$$ y_{-m}^* = \hat{\mu} + \varepsilon_{-m}^* $$
+Then, simulate forward for $t=\overbrace{-m+1}^{\text{burn-in}},\dots,0,1,\dots,n$:$$ y_t^* = \hat \mu +\hat \phi (y_{t-1}^*-\hat \mu)+\hat{\varepsilon}_t^* $$
+[Key Insight: The Role of Burn-In ($m$)] 
+Setting $y_{-m}^*$ to an arbitrary starting point introduces artificial bias. By running the simulation through a "burn-in" period of $m$ steps (typically $m \ge 50$) before capturing data at $t=1$, the memory of that initial guess completely decays. This ensures your simulated series $y_1^*, \dots, y_n^*$ has reached its true stationary distribution.
+
+**C. Model Refitting**
+
+Refit the AR(1) model to the newly generated bootstrap sample $\{y_1^*, y_2^*, \dots, y_n^*\}$ using MLE to obtain the bootstrap replicates:$$ \hat{\mu}^{b*}, \quad \hat{\phi}^{b*}, \quad \hat{\sigma}^{2b*} $$
+
+**Step 3: Inference**
+
+After completing $B$ loops, use the empirical distribution of your bootstrap replicates (e.g., the $B$ different values of $\hat{\phi}^{b*}$) to construct non-parametric confidence intervals and calculate standard errors for your parameters without relying on large-sample asymptotic theory.
+
+## Scale parameter bootstrap CI
+
+Approximate pivotal quantity:
+$$
+V=\frac{\hat \theta}{\theta}
+$$
+Bootstrap replicates:
+$$
+V^* = \frac{\hat \theta ^*}{\hat \theta}
+$$
+The bootstrap replicates yield empirical quantiles $V_{\alpha/2}^*$ and $V_{1-\alpha/2}^*$. Thus:
+$$
+\mathbb P\Big(V_{\alpha/2}^* < \frac{\hat \theta}{\theta} < V_{1-\alpha/2}^*\Big) \approx 1-\alpha
+$$
+Isolating the true parameter $\theta$ gives the $(1-\alpha)$ confidence interval:
+$$
+\mathbb P\Big(\frac{\hat \theta}{V^*_{1-\alpha/2}} < \theta < \frac{\hat \theta}{V^*_{\alpha/2}}\Big) \approx 1-\alpha
+$$
+
+**Concept:**
+
+Usually, when people learn pivotal bootstrap intervals, they look at location parameters (like the mean $\mu$). For a mean, the error is additive, so the pivot looks like a difference:$$V = \hat{\mu} - \mu$$However, because $\theta$ is a scale parameter (like a standard deviation $\sigma$ or a rate parameter), the error scales multiplicatively.The Core Assumption: We assume that the distribution of the relative error in our estimate ($\frac{\hat \theta}{\theta}$) is perfectly mirrored by the distribution of the relative error in our bootstrap world ($\frac{\hat \theta ^*}{\hat \theta}$).The "Flip" Trap: Notice how $V^*_{1-\alpha/2}$ (the upper quantile) ends up under the denominator on the left side of the inequality. This is a classic property of pivotal intervals. When you algebraically isolate $\theta$, taking the reciprocal flips the inequalities, meaning the upper bound of your pivot determines the lower bound of your confidence interval.
+
+# EM-Algorithm
+
+**Motivation:** The likelihood $f_Y(y \mid \theta)$ of the "complete" data $Y$ has a simple, mathematically tractable form, but we only observe the "incomplete" data $X = M(Y)$, where $M$ is a many-to-fewer mapping (e.g., censoring, missing data, or latent mixing categories).
+
+**Aim:** Maximize the "difficult" or analytically intractable marginal likelihood $f_X(x \mid \theta)$ of the observed data $X$.The Auxiliary function ($Q$-function):
+\begin{align*}
+Q(\theta \mid \theta^{(t)}) &= \mathbb E\Big [\ln f_Y(Y \mid \theta) ;\Big|; X=x, \theta^{(t)}\Big] \&= \int_{{y:M(y)=x}}\ln f_Y(y \mid \theta) f_{Y|X}(y \mid x,\theta^{(t)}) \ \mathrm dy
+\end{align*}
+
+If $M(Y)$ is a continuous deterministic mapping, the set $\{y : M(y)=x\}$ is a lower-dimensional surface, meaning a standard Lebesgue integral over $\mathrm{dy}$ would evaluate to zero. In practice, we write $Y = (X, Z)$ where $Z$ is the strictly latent (missing) data. The integral then simplifies cleanly to a standard integration over the space of the missing data:
+$$ 
+Q(\theta \mid \theta^{(t)}) = \int \ln f_{X,Z}(x, z \mid \theta) f_{Z|X}(z \mid x, \theta^{(t)}) \ \mathrm dz 
+$$
+
+**Algorithm Steps**
+
+Iterate the following two steps given an initial guess $\theta^{(0)}$:
+
+1. **E-step (Expectation):** Compute the $Q(\theta \mid \theta^{(t)})$ function. This means taking the expectation of the complete-data log-likelihood with respect to the missing data, conditioned on your observed data $x$ and your current best guess of the parameters $\theta^{(t)}$.
+2. **M-step (Maximization):** Update your parameter estimate by finding the value that maximizes this expected log-likelihood:$$ \theta^{(t+1)} = \arg\max_\theta Q(\theta \mid \theta^{(t)}) $$
+
+Repeat both steps until convergence (i.e., until $|\theta^{(t+1)} - \theta^{(t)}| < \epsilon$ or the log-likelihood plateaus).
+
+:::{.callout-note}
+### Why EM Guarantees Progres
+Every single iteration of the EM algorithm is mathematically guaranteed never to decrease the true observed likelihood. By maximizing the surrogate $Q$-function in the M-step, you actively push up a lower bound on the difficult target log-likelihood $\ln f_X(x \mid \theta)$.
+:::
+
+:::{.callout-tip}
+### Example: ABO-bloodtypes (Ceppellini et al. 1955)
+
+The ABO blood group system is determined by three alleles: $A$, $B$, and $O$ with unknown population frequencies $\theta = (p_A, p_B, p_O)$ such that $p_A + p_B + p_O = 1$.  
+
+Assuming Hardy-Weinberg Equilibrium, the expected genotype frequencies are given by expanding $(p_A + p_B + p_O)^2$.
+
+<br>
+
+**The Missing-Data Structure**:
+
+Our observed data ($X$) consists of the 4 visible phenotypes. Our complete data ($Y$) consists of the 6 underlying genotypes. We cannot observe the genotypes directly because allele $O$ is recessive, and alleles $A$ and $B$ are co-dominant.
+
+Phenotypes (Observed X) | Underlying Genotypes (Complete Y) | Genotype Probability | Observed Counts (X) | Complete Counts (Y)
+| --- | --- | --- | --- | --- |
+A | AA, AO | $p_{AA}$, $2p_A p_O$ | $n_A$ | $n_{AA}$, $n_{AO}$
+B | BB, BO | $p_{BB}$, $2p_B p_O$ | $n_B$ | $n_{BB}$, $n_{BO}$
+AB | AB | $2p_A p_B$ | $n_{AB}$ | $n_{AB}$
+O | OO | $p_O^2$ | $n_O$ | $n_{OO}$
+
+Model:
+$$
+Y =(n_{AA}, n_{AO}, n_{BB}, n_{BO}, n_{AB}, n_{OO}) \sim \mathrm{Multinomial}(n, \pmb p)
+$$
+where
+$$
+\pmb p = \begin{bmatrix}
+p_{AA} \\
+p_{AO} \\
+p_{BB} \\
+p_{BO} \\
+p_{AB} \\
+p_{OO}
+\end{bmatrix} = \begin{bmatrix}p_A^2 \\
+2p_A p_O \\
+p_B^2 \\
+2p_B p_O \\
+2p_A p_B \\
+p_O^2
+\end{bmatrix}
+$$
+and $p_O = 1-p_A-p_B$.
+
+<br>
+
+The complete-data log-likelihood is:
+\begin{align*}
+\ln f&(n_{AA}, n_{AO}, n_{BB}, n_{BO}, n_{AB}, n_{OO} \mid p_A, p_B, p_O) \\
+&= \ln \binom{n}{n_{AA}, n_{AO}, n_{BB}, n_{BO}, n_{AB}, n_{OO}} \\
+&\quad + \ln \left[ (p_A^2)^{n_{AA}} (2p_A p_O)^{n_{AO}} (p_B^2)^{n_{BB}} (2p_B p_O)^{n_{BO}} (2p_A p_B)^{n_{AB}} (p_O^2)^{n_{OO}} \right] \\[1ex]
+&= \ln \binom{n}{n_{AA}, n_{AO}, n_{BB}, n_{BO}, n_{AB}, n_{OO}} + (n_{AO} + n_{BO} + n_{AB})\ln(2) \\
+&\quad + (2n_{AA} + n_{AO} + n_{AB})\ln p_A \\
+&\quad + (2n_{BB} + n_{BO} + n_{AB})\ln p_B \\
+&\quad + (2n_{OO} + n_{AO} + n_{BO})\ln p_O
+\end{align*}
+
+<br>
+
+**E-step:**: Given $(p_A^{(t)}, p_B^{(t)}, p_O^{(t)})$ and the observed counts $(n_A, n_B, n_{AB}, n_O)$,
+\begin{align*}
+&Q(\pmb \theta \mid \pmb \theta^{(t)}) = \mathbb E\Big [\ln f(n_{AA}, n_{AO}, n_{BB}, n_{BO}, n_{AB}, n_{OO} \mid n_A, n_B, n_{AB}, n_O, p_A^{(t)}, p_B^{(t)}, p_O^{(t)})\Big] = \\
+& C+ (2n_{AA}^* + n_{AO}^* +n_{AB})\ln p_A + (2n_{BB}^* + n_{BO}^* + n_{AB})\ln p_B + (2n_{OO} + n_{AO}^* + n_{BO}^*)\ln p_O
+\end{align*}
+
+where:
+
+- $n_{AA}^* = \mathbb E(n_{AA} \mid n_A, p_A^{(t)}, p_B^{(t)}, p_O^{(t)}) = n_A \frac{p_A^{(t)2}}{p_A^{(t)2}+2p_A^{(t)}p_O^{(t)}}$
+- $n_{AO}^* = \mathbb E(n_{AO} \mid n_A, p_A^{(t)}, p_B^{(t)}, p_O^{(t)}) = n_A \frac{2p_A^{(t)}p_O^{(t)}}{p_A^{(t)2}+2p_A^{(t)}p_O^{(t)}}$
+- $n_{BB}^* = \mathbb E(n_{BB} \mid n_B, p_A^{(t)}, p_B^{(t)}, p_O^{(t)}) = n_B \frac{p_B^{(t)2}}{p_B^{(t)2}+2p_B^{(t)}p_O^{(t)}}$
+- $n_{BO}^* = \mathbb E(n_{BO} \mid n_B, p_A^{(t)}, p_B^{(t)}, p_O^{(t)}) = n_B \frac{2p_B^{(t)}p_O^{(t)}}{p_B^{(t)2}+2p_B^{(t)}p_O^{(t)}}$
+- $n_{OO}^* = \mathbb{E}(n_{OO} \mid n_O, \pmb\theta^{(t)}) = n_O$
+
+and $C$ is a constant w.r.t. $p_A, p_B, p_O$ (but not w.r.t. $p_A^{(t)}, p_B^{(t)}, p_O^{(t)}$ since the conditional expectation of the log of the multinomial coefficient depends on the current parameter estimates $p_A^{(t)}, p_B^{(t)}, p_O^{(t)}$).
+
+<br>
+
+**M-step:**: Maximize $Q(\pmb \theta \mid \pmb \theta^{(t)})$ w.r.t. $\pmb \theta$ yields:
+\begin{align*}
+\pmb \theta^{(t+1)} &= (p_A, p_B, p_O)^{(t+1)} \\
+&= \frac 1{2n}\Big (2n_{AA}^* + n_{AO}^* + n_{AB}, 2n_{BB}^* + n_{BO}^* + n_{AB}, 2n_{OO}^* + n_{AO}^* + n_{BO}^*\Big) \\ 
+&= \text{Sample frequencies of } A,\ B,\ O.
+\end{align*}
+
+:::
