@@ -201,7 +201,7 @@ $$
 
 If
 $$
-\lim_{n\to \infty} \mathbb E\Big ( (X_n-X)^2\Big)
+\lim_{n\to \infty} \mathbb E\Big ( (X_n-X)^2\Big)=0
 $$
 Then
 $$
@@ -223,6 +223,32 @@ X_n \overset{p}\to X
 $$
 :::
 
+:::{.callout-note}
+### Convergence implications
+
+- a.e. convergence $\implies$ probability convergence
+- $L^p$ convergence $\implies$ probability convergence
+- probability convergence $\implies$ convergence in distribution
+
+:::
+
+
+:::{.callout-note}
+### Strong Law of Large Numbers (SLLN)
+
+Let $\bar X_n = \frac 1n \sum_{i=1}^n X_i$ where $X_1,X_2, \dots$ are iid with finite $\mathbb E(X_i) = \mu$.
+
+Then:
+$$
+\bar X_h \overset{a.s.}\to \mu
+$$
+
+
+**Weak LLN:**
+$$
+\bar X_n \overset{p}\to \mu
+$$
+:::
 
 ## Monte Carlo Integration
 
